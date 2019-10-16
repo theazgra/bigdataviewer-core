@@ -35,6 +35,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiFunction;
 
 import javax.swing.ActionMap;
 import javax.swing.JFileChooser;
@@ -680,27 +681,24 @@ public class BigDataViewer
 		viewer.requestRepaint();
 	}
 
-	public static void main( final String[] args )
-	{
-		if (args.length < 1)
-		{
+	public static void main(final String[] args) {
+		if (args.length < 1) {
 			System.err.println("Error: pass XML dataset file.");
 			return;
 		}
 
 		final String fn = args[0];
-		System.out.println("Loading dataset from: " + fn);
-		//TODO(Moravec): Handle loading from server.
-		try
-		{
-			System.setProperty( "apple.laf.useScreenMenuBar", "true" );
+		final boolean serverResource = fn.startsWith("http");
 
-			final BigDataViewer bdv = open( fn, new File( fn ).getName(), new ProgressWriterConsole(), ViewerOptions.options() );
+		System.out.println(String.format("Loading dataset from %s resource: %s", serverResource ? "online" : "local", fn));
 
-//			DumpInputConfig.writeToYaml( System.getProperty( "user.home" ) + "/.bdv/bdvkeyconfig.yaml", bdv.getViewerFrame() );
-		}
-		catch ( final Exception e )
-		{
+
+		try {
+			System.setProperty("apple.laf.useScreenMenuBar", "true");
+
+			final String title = new File(fn).getName();
+			final BigDataViewer bdv = open(fn, title, new ProgressWriterConsole(), ViewerOptions.options());
+		} catch (final Exception e) {
 			e.printStackTrace();
 		}
 	}
