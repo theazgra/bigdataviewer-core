@@ -7,13 +7,13 @@
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -41,31 +41,36 @@ import mpicbg.spim.data.generic.sequence.XmlIoBasicImgLoader;
 
 import org.jdom2.Element;
 
-@ImgLoaderIo( format = "bdv.remote", type = RemoteImageLoader.class )
-public class XmlIoRemoteImageLoader implements XmlIoBasicImgLoader< RemoteImageLoader >
-{
+@ImgLoaderIo(format = "bdv.remote", type = RemoteImageLoader.class)
+public class XmlIoRemoteImageLoader implements XmlIoBasicImgLoader<RemoteImageLoader> {
 
-	@Override
-	public Element toXml( final RemoteImageLoader imgLoader, final File basePath )
-	{
-		final Element elem = new Element( "ImageLoader" );
-		elem.setAttribute( IMGLOADER_FORMAT_ATTRIBUTE_NAME, "bdv.remote" );
-		elem.addContent( XmlHelpers.textElement( "baseUrl", imgLoader.baseUrl ) );
-		return elem;
-	}
+    private boolean allowCompression = false;
 
-	@Override
-	public RemoteImageLoader fromXml( final Element elem, final File basePath, final AbstractSequenceDescription< ?, ?, ? > sequenceDescription )
-	{
-		final String baseUrl = elem.getChildText( "baseUrl" );
-		try
-		{
-			return new RemoteImageLoader( baseUrl );
-		}
-		catch ( final IOException e )
-		{
-			throw new RuntimeException( e );
-		}
-	}
+    @Override
+    public Element toXml(final RemoteImageLoader imgLoader, final File basePath) {
+        final Element elem = new Element("ImageLoader");
+        elem.setAttribute(IMGLOADER_FORMAT_ATTRIBUTE_NAME, "bdv.remote");
+        elem.addContent(XmlHelpers.textElement("baseUrl", imgLoader.baseUrl));
+        return elem;
+    }
 
+    @Override
+    public RemoteImageLoader fromXml(final Element elem,
+                                     final File basePath,
+                                     final AbstractSequenceDescription<?, ?, ?> sequenceDescription) {
+        final String baseUrl = elem.getChildText("baseUrl");
+        try {
+            return new RemoteImageLoader(baseUrl, allowCompression);
+        } catch (final IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public boolean shouldAllowCompression() {
+        return allowCompression;
+    }
+
+    public void setAllowCompression(boolean allowCompression) {
+        this.allowCompression = allowCompression;
+    }
 }
