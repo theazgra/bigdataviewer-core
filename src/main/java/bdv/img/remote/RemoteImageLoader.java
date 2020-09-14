@@ -31,6 +31,7 @@ package bdv.img.remote;
 
 import azgracompress.cache.ICacheFile;
 import azgracompress.cache.QuantizationCacheManager;
+import azgracompress.compression.ImageDecompressor;
 import bdv.AbstractViewerSetupImgLoader;
 import bdv.ViewerImgLoader;
 import bdv.img.cache.VolatileCachedCellImg;
@@ -55,6 +56,7 @@ import net.imglib2.view.Views;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.HashMap;
 
@@ -69,7 +71,12 @@ public class RemoteImageLoader implements ViewerImgLoader {
 
     protected RemoteVolatileShortArrayLoader shortLoader;
 
+    /**
+     * Flag whether we allow the server to send us compressed data.
+     */
     private boolean allowCompression;
+
+
     /**
      * TODO
      */
@@ -102,10 +109,6 @@ public class RemoteImageLoader implements ViewerImgLoader {
                     return;
                 isOpen = true;
 
-                if (allowCompression) {
-                    receiveCompressionInfo();
-                }
-
                 final URL url = new URL(baseUrl + "?p=init");
                 final GsonBuilder gsonBuilder = new GsonBuilder();
                 gsonBuilder.registerTypeAdapter(AffineTransform3D.class, new AffineTransform3DJsonSerializer());
@@ -117,6 +120,10 @@ public class RemoteImageLoader implements ViewerImgLoader {
                 cellsDimensions = metadata.createCellsDimensions();
                 for (final int setupId : metadata.perSetupMipmapInfo.keySet())
                     setupImgLoaders.put(setupId, new SetupImgLoader(setupId));
+
+                if (allowCompression) {
+                    setupCompression();
+                }
             }
         }
     }
@@ -129,10 +136,20 @@ public class RemoteImageLoader implements ViewerImgLoader {
         this.allowCompression = compressionEnabled;
     }
 
-    private void receiveCompressionInfo() throws IOException {
+    private void setupCompression() throws IOException {
         final URL url = new URL(baseUrl + "?p=init_qcmp");
-        final ICacheFile cachedCodebook = QuantizationCacheManager.readCacheFile(url.openStream());
-        System.out.println("\u001b[33mRemoteImageLoader::receiveCompressionInfo() - received cache file. '" + cachedCodebook.toString() + "'\u001b[0m");
+        final HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("GET");
+        connection.connect();
+
+        if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+            System.out.println("\u001b[33mRemoteImageLoader::setupCompression() - Server doesn't provide compressed data.\u001b[0m");
+            return;
+        }
+        final ICacheFile cachedCodebook = QuantizationCacheManager.readCacheFile(connection.getInputStream());
+        System.out.println("\u001b[33mRemoteImageLoader::setupCompression() - received cache file. '" + cachedCodebook + "'\u001b[0m");
+        shortLoader.setDataDecompressor(new ImageDecompressor(cachedCodebook));
+        System.out.println("\u001b[33mRemoteImageLoader::setupCompression() - instantiated image decompressor in shortLoader.\u001b[0m");
     }
 
 

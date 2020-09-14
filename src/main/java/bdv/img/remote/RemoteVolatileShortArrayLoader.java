@@ -31,67 +31,117 @@ package bdv.img.remote;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 
+import azgracompress.compression.ImageDecompressor;
 import bdv.img.cache.CacheArrayLoader;
 import net.imglib2.img.basictypeaccess.volatiles.array.VolatileShortArray;
 
-public class RemoteVolatileShortArrayLoader implements CacheArrayLoader< VolatileShortArray >
-{
-	private final RemoteImageLoader imgLoader;
+public class RemoteVolatileShortArrayLoader implements CacheArrayLoader<VolatileShortArray> {
+    private final RemoteImageLoader imgLoader;
 
-	public RemoteVolatileShortArrayLoader( final RemoteImageLoader imgLoader )
-	{
-		this.imgLoader = imgLoader;
-	}
+    private ImageDecompressor decompressor;
+    private boolean requestCompressedData = false;
 
-	@Override
-	public VolatileShortArray loadArray( final int timepoint, final int setup, final int level, final int[] dimensions, final long[] min ) throws InterruptedException
-	{
-		final int index = imgLoader.getCellIndex( timepoint, setup, level, min );
-		final short[] data = new short[ dimensions[ 0 ] * dimensions[ 1 ] * dimensions[ 2 ] ];
-		try
-		{
-			final URL url = new URL(String.format("%s?p=cell/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d",
-												  imgLoader.baseUrl,
-												  index,
-												  timepoint,
-												  setup,
-												  level,
-												  dimensions[0],
-												  dimensions[1],
-												  dimensions[2],
-												  min[0],
-												  min[1],
-												  min[2]));
-			final InputStream s = url.openStream();
-//            System.out.println("Request URL=" + url);
+    public RemoteVolatileShortArrayLoader(final RemoteImageLoader imgLoader) {
+        this.imgLoader = imgLoader;
+    }
+
+    private String constructRequestUrl(final String baseParam,
+                                       final int timepoint,
+                                       final int setup,
+                                       final int level,
+                                       final int[] dimensions,
+                                       final long[] min) {
+        final int index = imgLoader.getCellIndex(timepoint, setup, level, min);
+        return String.format("%s?p=%s/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d",
+                             imgLoader.baseUrl, baseParam,
+                             index, timepoint, setup, level,
+                             dimensions[0], dimensions[1], dimensions[2],
+                             min[0], min[1], min[2]);
+    }
+
+
+    @Override
+    public VolatileShortArray loadArray(final int timepoint,
+                                        final int setup,
+                                        final int level,
+                                        final int[] dimensions,
+                                        final long[] min) throws InterruptedException {
+
+
+        if (requestCompressedData) {
+            return loadArrayFromCompressedDataStream(timepoint, setup, level, dimensions, min);
+        }
+
+        short[] data = new short[dimensions[0] * dimensions[1] * dimensions[2]];
+        try {
+            final URL url = new URL(constructRequestUrl("cell", timepoint, setup, level, dimensions, min));
+
             final byte[] buf = new byte[data.length * 2];
+            final InputStream urlStream = url.openStream();
 
-            // NOTE(Moravec): Decompression place!
-			for (int i = 0, l = s.read(buf, 0, buf.length);
-				 l > 0;
-				 i += l, l = s.read(buf, i, buf.length - i))
-			;
+            //noinspection StatementWithEmptyBody
+            for (int i = 0, l = urlStream.read(buf, 0, buf.length);
+                 l > 0;
+                 i += l, l = urlStream.read(buf, i, buf.length - i))
+                ;
 
             for (int i = 0, j = 0; i < data.length; ++i, j += 2)
                 data[i] = (short) (((buf[j] & 0xff) << 8) | (buf[j + 1] & 0xff));
-            s.close();
-		}
-		catch ( final MalformedURLException e )
-		{
-			e.printStackTrace();
-		}
-		catch ( final IOException e )
-		{
-			e.printStackTrace();
-		}
-		return new VolatileShortArray( data, true );
-	}
 
-	@Override
-	public int getBytesPerElement() {
-		return 2;
-	}
+            urlStream.close();
+        } catch (final MalformedURLException e) {
+            e.printStackTrace();
+        } catch (final IOException e) {
+            e.printStackTrace();
+        }
+        return new VolatileShortArray(data, true);
+    }
+
+    public VolatileShortArray loadArrayFromCompressedDataStream(final int timepoint,
+                                                                final int setup,
+                                                                final int level,
+                                                                final int[] dimensions,
+                                                                final long[] min) {
+
+        short[] data = null;
+        try {
+            final URL url = new URL(constructRequestUrl("cell_qcmp", timepoint, setup, level, dimensions, min));
+
+            final HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+            connection.connect();
+
+            final byte[] buf = new byte[connection.getContentLength()];
+            final InputStream urlStream = connection.getInputStream();
+
+            //noinspection StatementWithEmptyBody
+            for (int i = 0, l = urlStream.read(buf, 0, buf.length);
+                 l > 0;
+                 i += l, l = urlStream.read(buf, i, buf.length - i))
+                ;
+
+
+            data = decompressor.decompressStream(urlStream);
+
+            urlStream.close();
+        } catch (final Exception e) {
+            e.printStackTrace();
+        }
+
+        return new VolatileShortArray(data, true);
+    }
+
+    @Override
+    public int getBytesPerElement() {
+        return 2;
+    }
+
+    public void setDataDecompressor(final ImageDecompressor imageDecompressor) {
+        this.decompressor = imageDecompressor;
+        requestCompressedData = true;
+    }
 }
