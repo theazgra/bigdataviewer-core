@@ -29,21 +29,22 @@
  */
 package bdv.img.remote;
 
+import azgracompress.compression.ImageDecompressor;
+import bdv.img.cache.CacheArrayLoader;
+import net.imglib2.img.basictypeaccess.volatiles.array.VolatileShortArray;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 
-import azgracompress.compression.ImageDecompressor;
-import bdv.img.cache.CacheArrayLoader;
-import net.imglib2.img.basictypeaccess.volatiles.array.VolatileShortArray;
-
 public class RemoteVolatileShortArrayLoader implements CacheArrayLoader<VolatileShortArray> {
     private final RemoteImageLoader imgLoader;
 
-    private ImageDecompressor decompressor;
     private boolean requestCompressedData = false;
+    private ImageDecompressor decompressor;
+
 
     public RemoteVolatileShortArrayLoader(final RemoteImageLoader imgLoader) {
         this.imgLoader = imgLoader;
@@ -115,17 +116,10 @@ public class RemoteVolatileShortArrayLoader implements CacheArrayLoader<Volatile
             connection.setRequestMethod("GET");
             connection.connect();
 
-            final byte[] buf = new byte[connection.getContentLength()];
+            final int contentLength = connection.getContentLength();
+
             final InputStream urlStream = connection.getInputStream();
-
-            //noinspection StatementWithEmptyBody
-            for (int i = 0, l = urlStream.read(buf, 0, buf.length);
-                 l > 0;
-                 i += l, l = urlStream.read(buf, i, buf.length - i))
-                ;
-
-
-            data = decompressor.decompressStream(urlStream);
+            data = decompressor.decompressStream(urlStream, contentLength);
 
             urlStream.close();
         } catch (final Exception e) {
