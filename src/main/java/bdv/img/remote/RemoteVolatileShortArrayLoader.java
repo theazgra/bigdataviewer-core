@@ -77,7 +77,7 @@ public class RemoteVolatileShortArrayLoader implements CacheArrayLoader<Volatile
             return loadArrayFromCompressedDataStream(timepoint, setup, level, dimensions, min);
         }
 
-        short[] data = new short[dimensions[0] * dimensions[1] * dimensions[2]];
+        final short[] data = new short[dimensions[0] * dimensions[1] * dimensions[2]];
         try {
             final URL url = new URL(constructRequestUrl("cell", timepoint, setup, level, dimensions, min));
 
