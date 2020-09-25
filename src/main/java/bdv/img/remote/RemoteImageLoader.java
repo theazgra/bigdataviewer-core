@@ -29,6 +29,7 @@
  */
 package bdv.img.remote;
 
+import azgracompress.ViewerCompressionOptions;
 import azgracompress.cache.ICacheFile;
 import azgracompress.cache.QuantizationCacheManager;
 import azgracompress.compression.ImageDecompressor;
@@ -77,7 +78,7 @@ public class RemoteImageLoader implements ViewerImgLoader {
     /**
      * Flag whether we allow the server to send us compressed data.
      */
-    private boolean allowCompression;
+    private ViewerCompressionOptions viewerCompressionOptions;
 
 
     /**
@@ -124,19 +125,15 @@ public class RemoteImageLoader implements ViewerImgLoader {
                 for (final int setupId : metadata.perSetupMipmapInfo.keySet())
                     setupImgLoaders.put(setupId, new SetupImgLoader(setupId));
 
-                if (allowCompression) {
+                if (viewerCompressionOptions.isEnabled()) {
                     setupCompression();
                 }
             }
         }
     }
 
-    public boolean shouldAllowCompression() {
-        return allowCompression;
-    }
-
-    public void setAllowCompression(final boolean compressionEnabled) {
-        this.allowCompression = compressionEnabled;
+    public void setViewerCompressionOptions(final ViewerCompressionOptions ops) {
+        this.viewerCompressionOptions = ops;
     }
 
     private void setupCompression() throws IOException {
@@ -166,10 +163,11 @@ public class RemoteImageLoader implements ViewerImgLoader {
         ColorConsole.fprintf(ColorConsole.Target.stdout, ColorConsole.Color.Yellow, "Received %d cache files.", cacheFiles.size());
 
 
-        final ICacheFile cachedCodebook = cacheFiles.get(cacheFiles.size() - 1);
-        // TODO(Moravec): Provide all decompressors.
-        shortLoader.setDataDecompressor(new ImageDecompressor(cachedCodebook));
-        System.out.println("\u001b[33mRemoteImageLoader::setupCompression() - instantiated image decompressor in shortLoader.\u001b[0m");
+        final ImageDecompressor[] decompressors = new ImageDecompressor[cacheFiles.size()];
+        for (int i = 0; i < cacheFiles.size(); i++) {
+            decompressors[i] = new ImageDecompressor(cacheFiles.get(i));
+        }
+        shortLoader.setDataDecompressors(decompressors, metadata.maxNumLevels, viewerCompressionOptions.getCompressFromMipmapLevel());
     }
 
 

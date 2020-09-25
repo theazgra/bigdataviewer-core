@@ -29,11 +29,9 @@
  */
 package bdv.spimdata;
 
-import static mpicbg.spim.data.XmlKeys.SPIMDATA_TAG;
-
-import java.io.File;
-
+import azgracompress.ViewerCompressionOptions;
 import bdv.img.remote.RemoteImageLoader;
+import bdv.spimdata.legacy.XmlIoSpimDataMinimalLegacy;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.SpimDataIOException;
 import mpicbg.spim.data.generic.XmlIoAbstractSpimData;
@@ -43,58 +41,53 @@ import mpicbg.spim.data.generic.sequence.XmlIoBasicViewSetups;
 import mpicbg.spim.data.registration.XmlIoViewRegistrations;
 import mpicbg.spim.data.sequence.XmlIoMissingViews;
 import mpicbg.spim.data.sequence.XmlIoTimePoints;
-
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.input.SAXBuilder;
 
-import bdv.spimdata.legacy.XmlIoSpimDataMinimalLegacy;
+import java.io.File;
 
-public class XmlIoSpimDataMinimal extends XmlIoAbstractSpimData< SequenceDescriptionMinimal, SpimDataMinimal >
-{
-    private boolean allowCompression = false;
+import static mpicbg.spim.data.XmlKeys.SPIMDATA_TAG;
 
-	public XmlIoSpimDataMinimal()
-	{
-		super( SpimDataMinimal.class,
-				new XmlIoAbstractSequenceDescription<>(
-						SequenceDescriptionMinimal.class,
-						new XmlIoTimePoints(),
-						new XmlIoBasicViewSetups<>( BasicViewSetup.class ),
-						new XmlIoMissingViews() ),
-				new XmlIoViewRegistrations() );
-	}
+public class XmlIoSpimDataMinimal extends XmlIoAbstractSpimData<SequenceDescriptionMinimal, SpimDataMinimal> {
+    private ViewerCompressionOptions compressionOptions;
 
-    public void setAllowCompression(final boolean allowCompression) {
-        this.allowCompression = allowCompression;
+    public XmlIoSpimDataMinimal() {
+        super(SpimDataMinimal.class,
+              new XmlIoAbstractSequenceDescription<>(
+                      SequenceDescriptionMinimal.class,
+                      new XmlIoTimePoints(),
+                      new XmlIoBasicViewSetups<>(BasicViewSetup.class),
+                      new XmlIoMissingViews()),
+              new XmlIoViewRegistrations());
     }
 
-	@Override
-	public SpimDataMinimal load( final String xmlFilename ) throws SpimDataException
-		{
-			final SAXBuilder sax = new SAXBuilder();
-			Document doc;
-			try
-			{
-				doc = sax.build( xmlFilename );
-			}
-			catch ( final Exception e )
-			{
-				throw new SpimDataIOException( e );
-			}
-			final Element root = doc.getRootElement();
+    public void setViewerCompressionOptions(final ViewerCompressionOptions ops) {
+        this.compressionOptions = ops;
+    }
 
-			if ( root.getName().equals( "SequenceDescription" ) )
-				return XmlIoSpimDataMinimalLegacy.fromXml( root, new File( xmlFilename ) );
+    @Override
+    public SpimDataMinimal load(final String xmlFilename) throws SpimDataException {
+        final SAXBuilder sax = new SAXBuilder();
+        final Document doc;
+        try {
+            doc = sax.build(xmlFilename);
+        } catch (final Exception e) {
+            throw new SpimDataIOException(e);
+        }
+        final Element root = doc.getRootElement();
 
-			if ( root.getName() != SPIMDATA_TAG )
-				throw new RuntimeException( "expected <" + SPIMDATA_TAG + "> root element. wrong file?" );
+        if (root.getName().equals("SequenceDescription"))
+            return XmlIoSpimDataMinimalLegacy.fromXml(root, new File(xmlFilename));
 
-            SpimDataMinimal spimDataMinimal = fromXml(root, new File(xmlFilename));
-            if (spimDataMinimal.getSequenceDescription().getImgLoader() instanceof RemoteImageLoader) {
-                final RemoteImageLoader remoteImageLoader = (RemoteImageLoader) spimDataMinimal.getSequenceDescription().getImgLoader();
-                remoteImageLoader.setAllowCompression(allowCompression);
-            }
-			return spimDataMinimal;
-		}
+        if (root.getName() != SPIMDATA_TAG)
+            throw new RuntimeException("expected <" + SPIMDATA_TAG + "> root element. wrong file?");
+
+        final SpimDataMinimal spimDataMinimal = fromXml(root, new File(xmlFilename));
+        if (spimDataMinimal.getSequenceDescription().getImgLoader() instanceof RemoteImageLoader) {
+            final RemoteImageLoader remoteImageLoader = (RemoteImageLoader) spimDataMinimal.getSequenceDescription().getImgLoader();
+            remoteImageLoader.setViewerCompressionOptions(compressionOptions);
+        }
+        return spimDataMinimal;
+    }
 }

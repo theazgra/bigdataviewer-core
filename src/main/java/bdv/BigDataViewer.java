@@ -29,21 +29,29 @@
  */
 package bdv;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.swing.ActionMap;
-import javax.swing.JFileChooser;
-import javax.swing.JMenu;
-import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
-import javax.swing.filechooser.FileFilter;
-
-import azgracompress.cache.ICacheFile;
+import azgracompress.ViewerCompressionOptions;
+import azgracompress.utilities.ColorConsole;
+import bdv.cache.CacheControl;
+import bdv.export.ProgressWriter;
+import bdv.export.ProgressWriterConsole;
+import bdv.spimdata.SpimDataMinimal;
+import bdv.spimdata.WrapBasicImgLoader;
+import bdv.spimdata.XmlIoSpimDataMinimal;
+import bdv.tools.*;
+import bdv.tools.bookmarks.Bookmarks;
+import bdv.tools.bookmarks.BookmarksEditor;
+import bdv.tools.brightness.*;
+import bdv.tools.crop.CropDialog;
+import bdv.tools.transformation.ManualTransformation;
+import bdv.tools.transformation.ManualTransformationEditor;
+import bdv.tools.transformation.TransformedSource;
+import bdv.viewer.*;
+import mpicbg.spim.data.SpimDataException;
+import mpicbg.spim.data.generic.AbstractSpimData;
+import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
+import mpicbg.spim.data.generic.sequence.BasicViewSetup;
+import mpicbg.spim.data.sequence.Angle;
+import mpicbg.spim.data.sequence.Channel;
 import net.imglib2.Volatile;
 import net.imglib2.converter.Converter;
 import net.imglib2.display.ColorConverter;
@@ -53,7 +61,6 @@ import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.NumericType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.volatiles.VolatileARGBType;
-
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
@@ -63,39 +70,14 @@ import org.jdom2.output.XMLOutputter;
 import org.scijava.ui.behaviour.io.InputTriggerConfig;
 import org.scijava.ui.behaviour.io.yaml.YamlConfigIO;
 
-import bdv.cache.CacheControl;
-import bdv.export.ProgressWriter;
-import bdv.export.ProgressWriterConsole;
-import bdv.spimdata.SpimDataMinimal;
-import bdv.spimdata.WrapBasicImgLoader;
-import bdv.spimdata.XmlIoSpimDataMinimal;
-import bdv.tools.HelpDialog;
-import bdv.tools.InitializeViewerState;
-import bdv.tools.RecordMaxProjectionDialog;
-import bdv.tools.RecordMovieDialog;
-import bdv.tools.VisibilityAndGroupingDialog;
-import bdv.tools.bookmarks.Bookmarks;
-import bdv.tools.bookmarks.BookmarksEditor;
-import bdv.tools.brightness.BrightnessDialog;
-import bdv.tools.brightness.ConverterSetup;
-import bdv.tools.brightness.MinMaxGroup;
-import bdv.tools.brightness.RealARGBColorConverterSetup;
-import bdv.tools.brightness.SetupAssignments;
-import bdv.tools.crop.CropDialog;
-import bdv.tools.transformation.ManualTransformation;
-import bdv.tools.transformation.ManualTransformationEditor;
-import bdv.tools.transformation.TransformedSource;
-import bdv.viewer.NavigationActions;
-import bdv.viewer.SourceAndConverter;
-import bdv.viewer.ViewerFrame;
-import bdv.viewer.ViewerOptions;
-import bdv.viewer.ViewerPanel;
-import mpicbg.spim.data.SpimDataException;
-import mpicbg.spim.data.generic.AbstractSpimData;
-import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
-import mpicbg.spim.data.generic.sequence.BasicViewSetup;
-import mpicbg.spim.data.sequence.Angle;
-import mpicbg.spim.data.sequence.Channel;
+import javax.swing.*;
+import javax.swing.filechooser.FileFilter;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class BigDataViewer {
     protected final ViewerFrame viewerFrame;
@@ -465,10 +447,10 @@ public class BigDataViewer {
                                      final String windowTitle,
                                      final ProgressWriter progressWriter,
                                      final ViewerOptions options,
-                                     final boolean allowCompression) throws SpimDataException {
+                                     final ViewerCompressionOptions ops) throws SpimDataException {
 
         final XmlIoSpimDataMinimal xmlIoSpimDataMinimal = new XmlIoSpimDataMinimal();
-        xmlIoSpimDataMinimal.setAllowCompression(allowCompression);
+        xmlIoSpimDataMinimal.setViewerCompressionOptions(ops);
         final SpimDataMinimal spimData = xmlIoSpimDataMinimal.load(xmlFilename);
         final BigDataViewer bdv = open(spimData, windowTitle, progressWriter, options);
         if (!bdv.tryLoadSettings(xmlFilename))
@@ -635,19 +617,37 @@ public class BigDataViewer {
         viewer.requestRepaint();
     }
 
+
     public static void main(final String[] args) {
-
-        // Default
-        String fn = "http://127.0.0.1:8080/drosophila32";
-
-
         if (args.length < 1) {
             System.err.println("Provide path.");
             return;
         }
+        final String fn = args[0];
 
-        fn = args[0];
-        final boolean allowCompression = (args.length > 1) && (args[1].equals("-qcmp"));
+        final ViewerCompressionOptions ops = new ViewerCompressionOptions();
+        if (args.length > 1) {
+            for (int i = 1; i < args.length; i++) {
+
+                switch (args[i]) {
+                    case "-qcmp":
+                        ops.setEnabled(true);
+                        break;
+                    case "-compress-from":
+                        if (args.length <= i + 1) {
+                            System.err.println("Missing -compress-from integer parameter.");
+                            return;
+                        }
+                        ops.setCompressFromMipmapLevel(Integer.parseInt(args[++i]));
+                        break;
+                }
+
+            }
+        }
+
+        ColorConsole.printf(ColorConsole.Color.Green, "Compression:\t" + (ops.isEnabled() ? "ON" : "OFF"));
+        if (ops.isEnabled())
+            ColorConsole.printf(ColorConsole.Color.Green, "CompressFrom:\t" + ops.getCompressFromMipmapLevel());
 
         try {
             System.setProperty("apple.laf.useScreenMenuBar", "true");
@@ -656,7 +656,7 @@ public class BigDataViewer {
                                            "Server test",
                                            new ProgressWriterConsole(),
                                            ViewerOptions.options(),
-                                           allowCompression);
+                                           ops);
 
         } catch (final Exception e) {
             e.printStackTrace();

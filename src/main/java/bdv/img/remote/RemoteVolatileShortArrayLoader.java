@@ -29,7 +29,9 @@
  */
 package bdv.img.remote;
 
+import azgracompress.compression.CompressorDecompressorBase;
 import azgracompress.compression.ImageDecompressor;
+import azgracompress.utilities.ColorConsole;
 import bdv.img.cache.CacheArrayLoader;
 import net.imglib2.img.basictypeaccess.volatiles.array.VolatileShortArray;
 
@@ -38,12 +40,17 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
 
 public class RemoteVolatileShortArrayLoader implements CacheArrayLoader<VolatileShortArray> {
     private final RemoteImageLoader imgLoader;
 
     private boolean requestCompressedData = false;
-    private ImageDecompressor decompressor;
+    private HashMap<Integer, ImageDecompressor> decompressors;
+    private ImageDecompressor lowestResDecompressor;
+    private int compressFromMipmapLevel = 0;
 
 
     public RemoteVolatileShortArrayLoader(final RemoteImageLoader imgLoader) {
@@ -70,10 +77,9 @@ public class RemoteVolatileShortArrayLoader implements CacheArrayLoader<Volatile
                                         final int setup,
                                         final int level,
                                         final int[] dimensions,
-                                        final long[] min) throws InterruptedException {
+                                        final long[] min) {
 
-
-        if (requestCompressedData) {
+        if (requestCompressedData && level >= compressFromMipmapLevel) {
             return loadArrayFromCompressedDataStream(timepoint, setup, level, dimensions, min);
         }
 
@@ -104,13 +110,13 @@ public class RemoteVolatileShortArrayLoader implements CacheArrayLoader<Volatile
 
     public VolatileShortArray loadArrayFromCompressedDataStream(final int timepoint,
                                                                 final int setup,
-                                                                final int level,
+                                                                final int mipmapLevel,
                                                                 final int[] dimensions,
                                                                 final long[] min) {
 
         short[] data = null;
         try {
-            final URL url = new URL(constructRequestUrl("cell_qcmp", timepoint, setup, level, dimensions, min));
+            final URL url = new URL(constructRequestUrl("cell_qcmp", timepoint, setup, mipmapLevel, dimensions, min));
 
             final HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
@@ -119,7 +125,7 @@ public class RemoteVolatileShortArrayLoader implements CacheArrayLoader<Volatile
             final int contentLength = connection.getContentLength();
 
             final InputStream urlStream = connection.getInputStream();
-            data = decompressor.decompressStream(urlStream, contentLength);
+            data = getDecompressorForMipmapLevel(mipmapLevel).decompressStream(urlStream, contentLength);
 
             urlStream.close();
         } catch (final Exception e) {
@@ -134,8 +140,35 @@ public class RemoteVolatileShortArrayLoader implements CacheArrayLoader<Volatile
         return 2;
     }
 
-    public void setDataDecompressor(final ImageDecompressor imageDecompressor) {
-        this.decompressor = imageDecompressor;
-        requestCompressedData = true;
+    private ImageDecompressor getDecompressorForMipmapLevel(final int mipmapLevel) {
+        assert (decompressors != null && !decompressors.isEmpty());
+        if (decompressors.containsKey(mipmapLevel)) {
+            return decompressors.get(mipmapLevel);
+        }
+        return lowestResDecompressor;
+    }
+
+    public void setDataDecompressors(final ImageDecompressor[] imageDecompressors,
+                                     final int levelCount,
+                                     final int compressFromMipmapLevel) {
+        Arrays.sort(imageDecompressors, Comparator.comparingInt(CompressorDecompressorBase::getBitsPerCodebookIndex));
+
+
+        final int numberOfDecompressionLevels = Math.min((levelCount - compressFromMipmapLevel), imageDecompressors.length);
+        decompressors = new HashMap<>(numberOfDecompressionLevels);
+
+        for (int mipmapLevel = 0; mipmapLevel < numberOfDecompressionLevels; mipmapLevel++) {
+            final ImageDecompressor decompressor = imageDecompressors[(imageDecompressors.length - 1) - mipmapLevel];
+            final int cbSize = (int) Math.pow(2, decompressor.getBitsPerCodebookIndex());
+            final int actualKey = mipmapLevel + compressFromMipmapLevel;
+            decompressors.put(actualKey, decompressor);
+
+            ColorConsole.fprintf(ColorConsole.Target.stdout, ColorConsole.Color.Yellow,
+                                 "Created decompressor for mipmap level %d with codebook of size %d.",
+                                 actualKey, cbSize);
+            lowestResDecompressor = decompressor;
+        }
+        this.compressFromMipmapLevel = compressFromMipmapLevel;
+        requestCompressedData = !decompressors.isEmpty();
     }
 }
