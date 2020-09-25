@@ -32,6 +32,7 @@ package bdv.img.remote;
 import azgracompress.cache.ICacheFile;
 import azgracompress.cache.QuantizationCacheManager;
 import azgracompress.compression.ImageDecompressor;
+import azgracompress.utilities.ColorConsole;
 import bdv.AbstractViewerSetupImgLoader;
 import bdv.ViewerImgLoader;
 import bdv.img.cache.VolatileCachedCellImg;
@@ -54,10 +55,12 @@ import net.imglib2.type.volatiles.VolatileUnsignedShortType;
 import net.imglib2.util.IntervalIndexer;
 import net.imglib2.view.Views;
 
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 public class RemoteImageLoader implements ViewerImgLoader {
@@ -146,8 +149,25 @@ public class RemoteImageLoader implements ViewerImgLoader {
             System.out.println("\u001b[33mRemoteImageLoader::setupCompression() - Server doesn't provide compressed data.\u001b[0m");
             return;
         }
-        final ICacheFile cachedCodebook = QuantizationCacheManager.readCacheFile(connection.getInputStream());
-        System.out.println("\u001b[33mRemoteImageLoader::setupCompression() - received cache file. '" + cachedCodebook + "'\u001b[0m");
+        final ArrayList<ICacheFile> cacheFiles = new ArrayList<>();
+        try (final DataInputStream dis = new DataInputStream(connection.getInputStream())) {
+            final int codebookCount = dis.readByte();
+            for (int cbIndex = 0; cbIndex < codebookCount; cbIndex++) {
+                final ICacheFile readCacheFile = QuantizationCacheManager.readCacheFile(dis);
+                if (readCacheFile == null) {
+                    ColorConsole.fprintf(ColorConsole.Target.stderr,
+                                         ColorConsole.Color.Red,
+                                         "Failed to read codebook from input stream. Compression can't be used.");
+                    return;
+                }
+                cacheFiles.add(readCacheFile);
+            }
+        }
+        ColorConsole.fprintf(ColorConsole.Target.stdout, ColorConsole.Color.Yellow, "Received %d cache files.", cacheFiles.size());
+
+
+        final ICacheFile cachedCodebook = cacheFiles.get(cacheFiles.size() - 1);
+        // TODO(Moravec): Provide all decompressors.
         shortLoader.setDataDecompressor(new ImageDecompressor(cachedCodebook));
         System.out.println("\u001b[33mRemoteImageLoader::setupCompression() - instantiated image decompressor in shortLoader.\u001b[0m");
     }
