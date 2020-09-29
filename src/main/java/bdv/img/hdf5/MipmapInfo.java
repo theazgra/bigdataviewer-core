@@ -1,9 +1,8 @@
 /*
  * #%L
- * BigDataViewer core classes with minimal dependencies
+ * BigDataViewer core classes with minimal dependencies.
  * %%
- * Copyright (C) 2012 - 2016 Tobias Pietzsch, Stephan Saalfeld, Stephan Preibisch,
- * Jean-Yves Tinevez, HongKee Moon, Johannes Schindelin, Curtis Rueden, John Bogovic
+ * Copyright (C) 2012 - 2020 BigDataViewer developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -37,8 +36,9 @@ import net.imglib2.realtransform.AffineTransform3D;
  * Contains for each mipmap level, the subsampling factors and subdivision
  * block sizes.
  *
- * @author Tobias Pietzsch &lt;tobias.pietzsch@gmail.com&gt;
+ * @author Tobias Pietzsch
  */
+// TODO Move to bdv.img package
 public class MipmapInfo
 {
 	/**

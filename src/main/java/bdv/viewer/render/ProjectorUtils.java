@@ -1,9 +1,8 @@
 /*-
  * #%L
- * BigDataViewer core classes with minimal dependencies
+ * BigDataViewer core classes with minimal dependencies.
  * %%
- * Copyright (C) 2012 - 2016 Tobias Pietzsch, Stephan Saalfeld, Stephan Preibisch,
- * Jean-Yves Tinevez, HongKee Moon, Johannes Schindelin, Curtis Rueden, John Bogovic
+ * Copyright (C) 2012 - 2020 BigDataViewer developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -27,13 +26,33 @@
  * POSSIBILITY OF SUCH DAMAGE.
  * #L%
  */
-package bdv;
+package bdv.viewer.render;
 
-import org.scijava.ui.behaviour.io.InputTriggerConfig;
+import net.imglib2.RandomAccessible;
+import net.imglib2.img.array.ArrayImg;
+import net.imglib2.img.basictypeaccess.array.IntArray;
+import net.imglib2.type.numeric.ARGBType;
 
-import net.imglib2.ui.TransformEventHandlerFactory;
-
-public interface BehaviourTransformEventHandlerFactory< A > extends TransformEventHandlerFactory< A >
+public class ProjectorUtils
 {
-	public void setConfig( final InputTriggerConfig config );
+	/**
+	 * Extracts the underlying {@code int[]} array in case {@code img} is a
+	 * standard {@code ArrayImg<ARGBType>}. This supports certain (optional)
+	 * optimizations in projector implementations.
+	 *
+	 * @return the underlying {@code int[]} array of {@code img}, if it is a
+	 * standard {@code ArrayImg<ARGBType>}. Otherwise {@code null}.
+	 */
+	public static int[] getARGBArrayImgData( final RandomAccessible< ? > img )
+	{
+		if ( ! ( img instanceof ArrayImg ) )
+			return null;
+		final ArrayImg< ?, ? > aimg = ( ArrayImg< ?, ? > ) img;
+		if( ! ( aimg.firstElement() instanceof ARGBType ) )
+			return null;
+		final Object access = aimg.update( null );
+		if ( ! ( access instanceof IntArray ) )
+			return null;
+		return ( ( IntArray ) access ).getCurrentStorageArray();
+	}
 }

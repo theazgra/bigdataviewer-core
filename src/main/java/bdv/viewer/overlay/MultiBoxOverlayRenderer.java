@@ -1,9 +1,8 @@
 /*
  * #%L
- * BigDataViewer core classes with minimal dependencies
+ * BigDataViewer core classes with minimal dependencies.
  * %%
- * Copyright (C) 2012 - 2016 Tobias Pietzsch, Stephan Saalfeld, Stephan Preibisch,
- * Jean-Yves Tinevez, HongKee Moon, Johannes Schindelin, Curtis Rueden, John Bogovic
+ * Copyright (C) 2012 - 2020 BigDataViewer developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -29,21 +28,20 @@
  */
 package bdv.viewer.overlay;
 
+import bdv.viewer.SourceAndConverter;
+import bdv.viewer.ViewerState;
 import java.awt.Graphics2D;
 import java.util.ArrayList;
 import java.util.List;
-
 import net.imglib2.Interval;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.util.Intervals;
-import bdv.viewer.state.SourceState;
-import bdv.viewer.state.ViewerState;
 
 /**
  * Render multibox overlay corresponding to a {@link ViewerState} into a
  * {@link Graphics2D}.
  *
- * @author Tobias Pietzsch &lt;tobias.pietzsch@gmail.com&gt;
+ * @author Tobias Pietzsch
  */
 public class MultiBoxOverlayRenderer
 {
@@ -119,19 +117,32 @@ public class MultiBoxOverlayRenderer
 	/**
 	 * Update data to show in the box overlay.
 	 */
-	public synchronized void setViewerState( final ViewerState viewerState )
+	@Deprecated
+	public synchronized void setViewerState( final bdv.viewer.state.ViewerState viewerState )
 	{
 		synchronized ( viewerState )
 		{
-			final List< SourceState< ? > > sources = viewerState.getSources();
-			final List< Integer > visible = viewerState.getVisibleSourceIndices();
-			final int timepoint = viewerState.getCurrentTimepoint();
+			setViewerState( viewerState.getState() );
+		}
+	}
 
-			final int numSources = sources.size();
-			int numPresentSources = 0;
-			for ( final SourceState< ? > source : sources )
-				if ( source.getSpimSource().isPresent( timepoint ) )
-					numPresentSources++;
+	/**
+	 * Update data to show in the box overlay.
+	 */
+	public synchronized void setViewerState( final ViewerState state )
+	{
+		synchronized ( state )
+		{
+			final List< SourceAndConverter< ? > > sources = state.getSources();
+			final int timepoint = state.getCurrentTimepoint();
+
+			final List< SourceAndConverter< ? > > presentSources = new ArrayList<>();
+			sources.forEach( s -> {
+				if ( s.getSpimSource().isPresent( timepoint ) )
+					presentSources.add( s );
+			} );
+
+			final int numPresentSources = presentSources.size();
 			if ( boxSources.size() != numPresentSources )
 			{
 				while ( boxSources.size() < numPresentSources )
@@ -140,21 +151,17 @@ public class MultiBoxOverlayRenderer
 					boxSources.remove( boxSources.size() - 1 );
 			}
 
-			final AffineTransform3D sourceToViewer = new AffineTransform3D();
+			final AffineTransform3D sourceToViewer = state.getViewerTransform();
 			final AffineTransform3D sourceTransform = new AffineTransform3D();
-			for ( int i = 0, j = 0; i < numSources; ++i )
+			int i = 0;
+			for ( final SourceAndConverter< ? > source : presentSources )
 			{
-				final SourceState< ? > source = sources.get( i );
-				if ( source.getSpimSource().isPresent( timepoint ) )
-				{
-					final IntervalAndTransform boxsource = boxSources.get( j++ );
-					viewerState.getViewerTransform( sourceToViewer );
-					source.getSpimSource().getSourceTransform( timepoint, 0, sourceTransform );
-					sourceToViewer.concatenate( sourceTransform );
-					boxsource.setSourceToViewer( sourceToViewer );
-					boxsource.setSourceInterval( source.getSpimSource().getSource( timepoint, 0 ) );
-					boxsource.setVisible( visible.contains( i ) );
-				}
+				final IntervalAndTransform boxsource = boxSources.get( i++ );
+				source.getSpimSource().getSourceTransform( timepoint, 0, sourceTransform );
+				sourceTransform.preConcatenate( sourceToViewer );
+				boxsource.setSourceToViewer( sourceTransform );
+				boxsource.setSourceInterval( source.getSpimSource().getSource( timepoint, 0 ) );
+				boxsource.setVisible( state.isSourceVisible( source ) );
 			}
 		}
 	}

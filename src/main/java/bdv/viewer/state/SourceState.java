@@ -1,9 +1,8 @@
 /*
  * #%L
- * BigDataViewer core classes with minimal dependencies
+ * BigDataViewer core classes with minimal dependencies.
  * %%
- * Copyright (C) 2012 - 2016 Tobias Pietzsch, Stephan Saalfeld, Stephan Preibisch,
- * Jean-Yves Tinevez, HongKee Moon, Johannes Schindelin, Curtis Rueden, John Bogovic
+ * Copyright (C) 2012 - 2020 BigDataViewer developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -36,74 +35,45 @@ import bdv.viewer.SourceAndConverter;
 /**
  * Source with some attached state needed for rendering.
  */
+@Deprecated
 public class SourceState< T > extends SourceAndConverter< T >
 {
-	protected static class Data
-	{
-		/**
-		 * Whether the source is active (visible in  {@link DisplayMode#FUSED} mode).
-		 */
-		protected boolean isActive;
-
-		/**
-		 * Whether the source is current.
-		 */
-		protected boolean isCurrent;
-
-		public Data()
-		{
-			isActive = true;
-			isCurrent = false;
-		}
-
-		protected Data( final Data d )
-		{
-			isActive = d.isActive;
-			isCurrent = d.isCurrent;
-		}
-
-		public Data copy()
-		{
-			return new Data( this );
-		}
-	}
-
 	static class VolatileSourceState< T, V extends Volatile< T > > extends SourceState< V >
 	{
-		public VolatileSourceState( final SourceAndConverter< V > soc, final ViewerState owner, final Data data )
+		public VolatileSourceState( final SourceAndConverter< V > soc, final ViewerState owner, final SourceAndConverter< ? > handle )
 		{
-			super( soc, owner, data );
+			super( soc, owner, handle );
 		}
 
-		public static < T, V extends Volatile< T > > VolatileSourceState< T, V > create( final SourceAndConverter< V > soc, final ViewerState owner, final Data data )
+		public static < T, V extends Volatile< T > > VolatileSourceState< T, V > create( final SourceAndConverter< V > soc, final ViewerState owner, final SourceAndConverter< ? > handle )
 		{
 			if ( soc == null )
 				return null;
 			else
-				return new VolatileSourceState<>( soc, owner, data );
+				return new VolatileSourceState<>( soc, owner, handle );
 		}
 	}
 
 	final ViewerState owner;
 
-	final Data data;
+	final SourceAndConverter< ? > handle;
 
 	final VolatileSourceState< T, ? extends Volatile< T > > volatileSourceState;
 
 	public SourceState( final SourceAndConverter< T > soc, final ViewerState owner )
 	{
 		super( soc );
-		data = new Data();
 		this.owner = owner;
-		volatileSourceState = VolatileSourceState.create( soc.asVolatile(), owner, data );
+		handle = soc;
+		volatileSourceState = VolatileSourceState.create( soc.asVolatile(), owner, handle );
 	}
 
-	protected SourceState( final SourceAndConverter< T > soc, final ViewerState owner, final Data data )
+	protected SourceState( final SourceAndConverter< T > soc, final ViewerState owner, final SourceAndConverter< ? > handle )
 	{
 		super( soc );
-		this.data = data;
 		this.owner = owner;
-		volatileSourceState = VolatileSourceState.create( soc.asVolatile(), owner, data );
+		this.handle = handle;
+		volatileSourceState = VolatileSourceState.create( soc.asVolatile(), owner, handle );
 	}
 
 	/**
@@ -113,9 +83,9 @@ public class SourceState< T > extends SourceAndConverter< T >
 	protected SourceState( final SourceState< T > s, final ViewerState owner )
 	{
 		super( s );
-		data = s.data.copy();
 		this.owner = owner;
-		volatileSourceState = VolatileSourceState.create( s.volatileSourceAndConverter, owner, data );
+		handle = s.handle;
+		volatileSourceState = VolatileSourceState.create( s.volatileSourceAndConverter, owner, handle );
 	}
 
 	public SourceState< T > copy( final ViewerState owner )
@@ -130,7 +100,7 @@ public class SourceState< T > extends SourceAndConverter< T >
 	 */
 	public boolean isActive()
 	{
-		return data.isActive;
+		return owner.state.isSourceActive( handle );
 	}
 
 	/**
@@ -140,7 +110,7 @@ public class SourceState< T > extends SourceAndConverter< T >
 	{
 		synchronized ( owner )
 		{
-			data.isActive = isActive;
+			owner.state.setSourceActive( handle, isActive );
 		}
 	}
 
@@ -151,7 +121,7 @@ public class SourceState< T > extends SourceAndConverter< T >
 	 */
 	public boolean isCurrent()
 	{
-		return data.isCurrent;
+		return owner.state.isCurrentSource( handle );
 	}
 
 	/**
@@ -161,7 +131,7 @@ public class SourceState< T > extends SourceAndConverter< T >
 	{
 		synchronized ( owner )
 		{
-			data.isCurrent = isCurrent;
+			owner.state.setCurrentSource( handle );
 		}
 	}
 
@@ -177,6 +147,15 @@ public class SourceState< T > extends SourceAndConverter< T >
 	public SourceState< ? extends Volatile< T > > asVolatile()
 	{
 		return volatileSourceState;
+	}
+
+	/**
+	 * Get the SourceAndConverter that this SourceState represents.
+	 * This handle is used to make modifications to the {@link bdv.viewer.ViewerState}
+	 */
+	public SourceAndConverter< ? > getHandle()
+	{
+		return handle;
 	}
 }
 

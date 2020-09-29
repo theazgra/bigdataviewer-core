@@ -1,9 +1,8 @@
 /*
  * #%L
- * BigDataViewer core classes with minimal dependencies
+ * BigDataViewer core classes with minimal dependencies.
  * %%
- * Copyright (C) 2012 - 2016 Tobias Pietzsch, Stephan Saalfeld, Stephan Preibisch,
- * Jean-Yves Tinevez, HongKee Moon, Johannes Schindelin, Curtis Rueden, John Bogovic
+ * Copyright (C) 2012 - 2020 BigDataViewer developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -29,6 +28,8 @@
  */
 package bdv.tools.transformation;
 
+import bdv.viewer.SynchronizedViewerState;
+import bdv.viewer.ViewerState;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -88,14 +89,23 @@ public class ManualTransformation
 
 	private ArrayList< TransformedSource< ? > > getTransformedSources()
 	{
+		final List< ? extends SourceAndConverter< ? > > sourceList;
+		if ( sources != null )
+			sourceList = sources;
+		else
+		{
+			final ViewerState state = viewer.state();
+			synchronized ( state )
+			{
+				sourceList = new ArrayList<>( state.getSources() );
+			}
+		}
+
 		final ArrayList< TransformedSource< ? > > list = new ArrayList<>();
-		final List< ? extends SourceAndConverter< ? > > sourceList = ( sources != null )
-				? sources
-				: viewer.getState().getSources();
 		for ( final SourceAndConverter< ? > soc : sourceList )
 		{
 			final Source< ? > source = soc.getSpimSource();
-			if ( TransformedSource.class.isInstance( source ) )
+			if ( source instanceof TransformedSource )
 				list.add( (TransformedSource< ? > ) source );
 		}
 		return list;

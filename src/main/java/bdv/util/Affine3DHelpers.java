@@ -1,9 +1,8 @@
 /*
  * #%L
- * BigDataViewer core classes with minimal dependencies
+ * BigDataViewer core classes with minimal dependencies.
  * %%
- * Copyright (C) 2012 - 2016 Tobias Pietzsch, Stephan Saalfeld, Stephan Preibisch,
- * Jean-Yves Tinevez, HongKee Moon, Johannes Schindelin, Curtis Rueden, John Bogovic
+ * Copyright (C) 2012 - 2020 BigDataViewer developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -37,7 +36,7 @@ import net.imglib2.util.LinAlgHelpers;
  * {@link AffineTransform3D}. Note that most of these helpers assume additional
  * restrictions on the affine transform.
  *
- * @author Tobias Pietzsch &lt;tobias.pietzsch@gmail.com&gt;
+ * @author Tobias Pietzsch
  */
 public class Affine3DHelpers
 {
@@ -200,8 +199,21 @@ public class Affine3DHelpers
 		}
 		return Math.sqrt( sqSum );
 	}
-	
-	
+
+	/**
+	 * Compare two transforms for equality.
+	 *
+	 * @return {@code true} iff {@code t1} and {@code t2} are exactly the same
+	 */
+	public static boolean equals( AffineTransform3D t1, AffineTransform3D t2 )
+	{
+		for ( int r = 0; r < 3; ++r )
+			for ( int c = 0; c < 4; ++c )
+				if ( t1.get( r, c ) != t2.get( r, c ) )
+					return false;
+		return true;
+	}
+
 	/**
 	 * Pretty-print the matrix content of an affine transform.
 	 * 

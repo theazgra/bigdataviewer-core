@@ -1,9 +1,8 @@
 /*
  * #%L
- * BigDataViewer core classes with minimal dependencies
+ * BigDataViewer core classes with minimal dependencies.
  * %%
- * Copyright (C) 2012 - 2016 Tobias Pietzsch, Stephan Saalfeld, Stephan Preibisch,
- * Jean-Yves Tinevez, HongKee Moon, Johannes Schindelin, Curtis Rueden, John Bogovic
+ * Copyright (C) 2012 - 2020 BigDataViewer developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -31,13 +30,9 @@ package bdv.tools.brightness;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Frame;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
 import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -47,12 +42,12 @@ import java.awt.event.KeyEvent;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.ActionMap;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
-import javax.swing.Icon;
 import javax.swing.InputMap;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -65,11 +60,11 @@ import javax.swing.JSpinner;
 import javax.swing.KeyStroke;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
-import javax.swing.WindowConstants;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import bdv.util.InvokeOnEDT;
+import bdv.util.DelayedPackDialog;
 import mpicbg.spim.data.generic.sequence.BasicViewSetup;
 import net.imglib2.type.numeric.ARGBType;
 
@@ -77,9 +72,10 @@ import net.imglib2.type.numeric.ARGBType;
 /**
  * Adjust brightness and colors for individual (or groups of) {@link BasicViewSetup setups}.
  *
- * @author Tobias Pietzsch &lt;tobias.pietzsch@gmail.com&gt;
+ * @author Tobias Pietzsch
  */
-public class BrightnessDialog extends JDialog
+@Deprecated
+public class BrightnessDialog extends DelayedPackDialog
 {
 	public BrightnessDialog( final Frame owner, final SetupAssignments setupAssignments )
 	{
@@ -108,6 +104,8 @@ public class BrightnessDialog extends JDialog
 		im.put( KeyStroke.getKeyStroke( KeyEvent.VK_ESCAPE, 0 ), hideKey );
 		am.put( hideKey, hideAction );
 
+		final AtomicBoolean recreateContentPending = new AtomicBoolean();
+
 		setupAssignments.setUpdateListener( new SetupAssignments.UpdateListener()
 		{
 			@Override
@@ -116,8 +114,17 @@ public class BrightnessDialog extends JDialog
 				try
 				{
 					InvokeOnEDT.invokeAndWait( () -> {
-						colorsPanel.recreateContent();
-						minMaxPanels.recreateContent();
+						if ( isVisible() )
+						{
+							System.out.println( "colorsPanel.recreateContent()" );
+							colorsPanel.recreateContent();
+							minMaxPanels.recreateContent();
+							recreateContentPending.set( false );
+						}
+						else
+						{
+							recreateContentPending.set( true );
+						}
 					} );
 				}
 				catch ( InvocationTargetException | InterruptedException e )
@@ -127,44 +134,20 @@ public class BrightnessDialog extends JDialog
 			}
 		} );
 
+		addComponentListener( new ComponentAdapter()
+		{
+			@Override
+			public void componentShown( final ComponentEvent e )
+			{
+				if ( recreateContentPending.getAndSet( false ) )
+				{
+					colorsPanel.recreateContent();
+					minMaxPanels.recreateContent();
+				}
+			}
+		} );
+
 		pack();
-		setDefaultCloseOperation( WindowConstants.HIDE_ON_CLOSE );
-	}
-
-	/**
-	 * Adapted from http://stackoverflow.com/a/3072979/230513
-	 */
-	private static class ColorIcon implements Icon
-	{
-		private final int size = 16;
-
-		private final Color color;
-
-		public ColorIcon( final Color color )
-		{
-			this.color = color;
-		}
-
-		@Override
-		public void paintIcon( final Component c, final Graphics g, final int x, final int y )
-		{
-			final Graphics2D g2d = ( Graphics2D ) g;
-			g2d.setRenderingHint( RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON );
-			g2d.setColor( color );
-			g2d.fillOval( x, y, size, size );
-		}
-
-		@Override
-		public int getIconWidth()
-		{
-			return size;
-		}
-
-		@Override
-		public int getIconHeight()
-		{
-			return size;
-		}
 	}
 
 	public static class ColorsPanel extends JPanel
@@ -196,27 +179,22 @@ public class BrightnessDialog extends JDialog
 			for ( final ConverterSetup setup : setupAssignments.getConverterSetups() )
 			{
 				final JButton button = new JButton( new ColorIcon( getColor( setup ) ) );
-				button.addActionListener( new ActionListener()
-				{
-					@Override
-					public void actionPerformed( final ActionEvent e )
+				button.addActionListener( e -> {
+					colorChooser.setColor( getColor( setup ) );
+					final JDialog d = JColorChooser.createDialog( button, "Choose a color", true, colorChooser, new ActionListener()
 					{
-						colorChooser.setColor( getColor( setup ) );
-						final JDialog d = JColorChooser.createDialog( button, "Choose a color", true, colorChooser, new ActionListener()
+						@Override
+						public void actionPerformed( final ActionEvent arg0 )
 						{
-							@Override
-							public void actionPerformed( final ActionEvent arg0 )
+							final Color c = colorChooser.getColor();
+							if (c != null)
 							{
-								final Color c = colorChooser.getColor();
-								if (c != null)
-								{
-									button.setIcon( new ColorIcon( c ) );
-									setColor( setup, c );
-								}
+								button.setIcon( new ColorIcon( c ) );
+								setColor( setup, c );
 							}
-						}, null );
-						d.setVisible( true );
-					}
+						}
+					}, null );
+					d.setVisible( true );
 				} );
 				button.setEnabled( setup.supportsColor() );
 				buttons.add( button );
@@ -237,7 +215,7 @@ public class BrightnessDialog extends JDialog
 				return new Color( value );
 			}
 			else
-				return new Color ( 0xFFBBBBBB );
+				return null;
 		}
 
 		private static void setColor( final ConverterSetup setup, final Color color )

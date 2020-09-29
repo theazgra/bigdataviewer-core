@@ -1,9 +1,8 @@
 /*
  * #%L
- * BigDataViewer core classes with minimal dependencies
+ * BigDataViewer core classes with minimal dependencies.
  * %%
- * Copyright (C) 2012 - 2016 Tobias Pietzsch, Stephan Saalfeld, Stephan Preibisch,
- * Jean-Yves Tinevez, HongKee Moon, Johannes Schindelin, Curtis Rueden, John Bogovic
+ * Copyright (C) 2012 - 2020 BigDataViewer developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -45,7 +44,7 @@ import net.imglib2.realtransform.AffineTransform3D;
  * {@link TimePoint#getId() id}. This timepoint index is an index into the
  * ordered list of timepoints {@link TimePoints#getTimePointsOrdered()}.
  *
- * @author Tobias Pietzsch &lt;tobias.pietzsch@gmail.com&gt;
+ * @author Tobias Pietzsch
  */
 public interface Source< T >
 {
@@ -56,7 +55,7 @@ public interface Source< T >
 	 *            timepoint index
 	 * @return true, if there is data for timepoint index t.
 	 */
-	public boolean isPresent( int t );
+	boolean isPresent( int t );
 
 	/**
 	 * Get the 3D stack at timepoint index t.
@@ -67,8 +66,24 @@ public interface Source< T >
 	 * 			  mipmap level
 	 * @return the {@link RandomAccessibleInterval stack}.
 	 */
-	public RandomAccessibleInterval< T > getSource( int t, int level );
+	RandomAccessibleInterval< T > getSource( int t, int level );
 
+	/**
+	 * Whether this source participates in bounding box culling.
+	 * <p>
+	 * If {@code true}, then this source will only be rendered if its bounding
+	 * box, i.e., the interval of {@link #getSource}, intersects the
+	 * current screen area (when transformed to viewer coordinates).
+	 * <p>
+	 * If {@code false}, then this source will be always rendered (if it is
+	 * set to be visible.)
+	 *
+	 * @return {@code true}, if this source participates in bounding box culling.
+	 */
+	default boolean doBoundingBoxCulling()
+	{
+		return true;
+	}
 
 	/**
 	 * Get the 3D stack at timepoint index t, extended to infinity and interpolated.
@@ -81,15 +96,7 @@ public interface Source< T >
 	 * 			  interpolation method to use
 	 * @return the extended and interpolated {@link RandomAccessible stack}.
 	 */
-	public RealRandomAccessible< T > getInterpolatedSource( final int t, final int level, final Interpolation method );
-
-	/*
-	 * TODO: Consider adding the methods for getting Source with explicit
-	 * ThreadGroup key (in case we don't want it to be the current thread's
-	 * ThreadGroup).
-	 */
-//	public default RandomAccessibleInterval< T > getSource( int t, int level, ThreadGroup threadGroup );
-//	public RealRandomAccessible< T > getInterpolatedSource( final int t, final int level, final Interpolation method, ThreadGroup threadGroup );
+	RealRandomAccessible< T > getInterpolatedSource( final int t, final int level, final Interpolation method );
 
 	/**
 	 * Get the transform from the {@link #getSource(int, int) source} at the
@@ -103,26 +110,26 @@ public interface Source< T >
 	 *            is set to the source-to-global transform, that transforms
 	 *            source coordinates into the global coordinates
 	 */
-	public void getSourceTransform( int t, int level, AffineTransform3D transform );
+	void getSourceTransform( int t, int level, AffineTransform3D transform );
 
 	/**
 	 * Get an instance of the pixel type.
 	 * @return instance of pixel type.
 	 */
-	public T getType();
+	T getType();
 
 	/**
 	 * Get the name of the source.
 	 * @return the name of the source.
 	 */
-	public String getName();
+	String getName();
 
 	/**
 	 * Get voxel size and unit for this source. May return null.
 	 *
 	 * @return voxel size and unit or {@code null}.
 	 */
-	public VoxelDimensions getVoxelDimensions();
+	VoxelDimensions getVoxelDimensions();
 
-	public int getNumMipmapLevels();
+	int getNumMipmapLevels();
 }

@@ -1,9 +1,8 @@
 /*
  * #%L
- * BigDataViewer core classes with minimal dependencies
+ * BigDataViewer core classes with minimal dependencies.
  * %%
- * Copyright (C) 2012 - 2016 Tobias Pietzsch, Stephan Saalfeld, Stephan Preibisch,
- * Jean-Yves Tinevez, HongKee Moon, Johannes Schindelin, Curtis Rueden, John Bogovic
+ * Copyright (C) 2012 - 2020 BigDataViewer developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -38,8 +37,8 @@ import bdv.viewer.ViewerFrame;
  * from {@link System#currentTimeMillis()} or a frame number when rendering
  * movies.
  *
- * @author Tobias Pietzsch &lt;tobias.pietzsch@gmail.com&gt;
- * @author Jean-Yves Tinevez &lt;jeanyves.tinevez@gmail.com&gt;
+ * @author Tobias Pietzsch
+ * @author Jean-Yves Tinevez
  */
 public class AbstractAnimator
 {

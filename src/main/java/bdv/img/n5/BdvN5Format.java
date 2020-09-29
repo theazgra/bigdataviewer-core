@@ -1,9 +1,8 @@
-/*
+/*-
  * #%L
- * BigDataViewer core classes with minimal dependencies
+ * BigDataViewer core classes with minimal dependencies.
  * %%
- * Copyright (C) 2012 - 2016 Tobias Pietzsch, Stephan Saalfeld, Stephan Preibisch,
- * Jean-Yves Tinevez, HongKee Moon, Johannes Schindelin, Curtis Rueden, John Bogovic
+ * Copyright (C) 2012 - 2020 BigDataViewer developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -27,28 +26,25 @@
  * POSSIBILITY OF SUCH DAMAGE.
  * #L%
  */
-package bdv.viewer.render;
+package bdv.img.n5;
 
-import java.awt.image.BufferedImage;
-
-import net.imglib2.realtransform.AffineTransform3D;
-import net.imglib2.ui.RenderTarget;
-import net.imglib2.ui.TransformListener;
-
-public interface TransformAwareRenderTarget extends RenderTarget
+public class BdvN5Format
 {
-	/**
-	 * Set the {@link BufferedImage} that is to be drawn on the canvas, and the
-	 * transform with which this image was created.
-	 *
-	 * @param img
-	 *            image to draw (may be null).
-	 */
-	public BufferedImage setBufferedImageAndTransform( final BufferedImage img, final AffineTransform3D transform );
+	public static final String DOWNSAMPLING_FACTORS_KEY = "downsamplingFactors";
+	public static final String DATA_TYPE_KEY = "dataType";
 
-	public void addTransformListener( final TransformListener< AffineTransform3D > listener );
+	public static String getPathName( final int setupId )
+	{
+		return String.format( "setup%d", setupId );
+	}
 
-	public void addTransformListener( final TransformListener< AffineTransform3D > listener, final int index );
+	public static String getPathName( final int setupId, final int timepointId )
+	{
+		return String.format( "setup%d/timepoint%d", setupId, timepointId );
+	}
 
-	public void removeTransformListener( final TransformListener< AffineTransform3D > listener );
+	public static String getPathName( final int setupId, final int timepointId, final int level )
+	{
+		return String.format( "setup%d/timepoint%d/s%d", setupId, timepointId, level );
+	}
 }

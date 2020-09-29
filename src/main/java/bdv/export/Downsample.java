@@ -1,9 +1,8 @@
 /*
  * #%L
- * BigDataViewer core classes with minimal dependencies
+ * BigDataViewer core classes with minimal dependencies.
  * %%
- * Copyright (C) 2012 - 2016 Tobias Pietzsch, Stephan Saalfeld, Stephan Preibisch,
- * Jean-Yves Tinevez, HongKee Moon, Johannes Schindelin, Curtis Rueden, John Bogovic
+ * Copyright (C) 2012 - 2020 BigDataViewer developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -44,6 +43,9 @@ import net.imglib2.view.Views;
 
 public class Downsample
 {
+	/**
+	 * TODO: Revise. This is probably not very efficient
+	 */
 	public static < T extends RealType< T > > void downsample( final RandomAccessible< T > input, final RandomAccessibleInterval< T > output, final int[] factor )
 	{
 		assert input.numDimensions() == output.numDimensions();

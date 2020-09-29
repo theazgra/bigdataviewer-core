@@ -1,9 +1,8 @@
 /*
  * #%L
- * BigDataViewer core classes with minimal dependencies
+ * BigDataViewer core classes with minimal dependencies.
  * %%
- * Copyright (C) 2012 - 2016 Tobias Pietzsch, Stephan Saalfeld, Stephan Preibisch,
- * Jean-Yves Tinevez, HongKee Moon, Johannes Schindelin, Curtis Rueden, John Bogovic
+ * Copyright (C) 2012 - 2020 BigDataViewer developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -29,6 +28,8 @@
  */
 package bdv.viewer.state;
 
+import bdv.viewer.ViewerState;
+import java.util.Collections;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -37,11 +38,16 @@ import bdv.viewer.DisplayMode;
 /**
  * TODO
  *
- * @author Tobias Pietzsch &lt;tobias.pietzsch@gmail.com&gt;
+ * @author Tobias Pietzsch
  */
+@Deprecated
 public class SourceGroup
 {
-	protected final TreeSet< Integer > sourceIds;
+	protected final SortedSet< Integer > sourceIds;
+
+	private final ViewerState state;
+
+	private final bdv.viewer.SourceGroup handle;
 
 	protected String name;
 
@@ -56,9 +62,18 @@ public class SourceGroup
 	 */
 	protected boolean isCurrent;
 
+	public SourceGroup( final ViewerState state, final bdv.viewer.SourceGroup handle )
+	{
+		this.state = state;
+		this.handle = handle;
+		sourceIds = Collections.synchronizedSortedSet( new TreeSet<>() );
+	}
+
 	public SourceGroup( final String name )
 	{
-		sourceIds = new TreeSet<>();
+		this.state = null;
+		this.handle = null;
+		sourceIds = Collections.synchronizedSortedSet( new TreeSet<>() );
 		this.name = name;
 		isActive = true;
 		isCurrent = false;
@@ -66,10 +81,15 @@ public class SourceGroup
 
 	protected SourceGroup( final SourceGroup g )
 	{
-		sourceIds = new TreeSet<>( g.sourceIds );
-		name = g.name;
-		isActive = g.isActive;
-		isCurrent = g.isCurrent;
+		this.state = null;
+		this.handle = null;
+		synchronized ( g.getSourceIds() )
+		{
+			sourceIds = Collections.synchronizedSortedSet( new TreeSet<>( g.getSourceIds() ) );
+		}
+		name = g.getName();
+		isActive = g.isActive();
+		isCurrent = g.isCurrent();
 	}
 
 	public SourceGroup copy()
@@ -79,26 +99,49 @@ public class SourceGroup
 
 	public void addSource( final int sourceId )
 	{
-		sourceIds.add( sourceId );
+		if ( handle == null )
+			sourceIds.add( sourceId );
+		else
+		{
+			state.addSourceToGroup( state.getSources().get( sourceId ), handle );
+			sourceIds.clear();
+			state.getSourcesInGroup( handle ).forEach( source -> sourceIds.add( state.getSources().indexOf( source ) ) );
+		}
 	}
 
 	public void removeSource( final int sourceId )
 	{
-		sourceIds.remove( sourceId );
+		if ( handle == null )
+			sourceIds.remove( sourceId );
+		else
+		{
+			state.removeSourceFromGroup( state.getSources().get( sourceId ), handle );
+			sourceIds.clear();
+			state.getSourcesInGroup( handle ).forEach( source -> sourceIds.add( state.getSources().indexOf( source ) ) );
+		}
 	}
 
 	public SortedSet< Integer > getSourceIds()
 	{
+		if ( handle != null )
+		{
+			sourceIds.clear();
+			state.getSourcesInGroup( handle ).forEach( source -> sourceIds.add( state.getSources().indexOf( source ) ) );
+		}
 		return sourceIds;
 	}
 
 	public String getName()
 	{
+		if ( handle != null )
+			name = state.getGroupName( handle );
 		return name;
 	}
 
 	public void setName( final String name )
 	{
+		if ( handle != null )
+			state.setGroupName( handle, name );
 		this.name = name;
 	}
 
@@ -109,6 +152,8 @@ public class SourceGroup
 	 */
 	public boolean isActive()
 	{
+		if ( handle != null )
+			isActive = state.isGroupActive( handle );
 		return isActive;
 	}
 
@@ -117,6 +162,8 @@ public class SourceGroup
 	 */
 	public void setActive( final boolean isActive )
 	{
+		if ( handle != null )
+			state.setGroupActive( handle, isActive );
 		this.isActive = isActive;
 	}
 
@@ -127,6 +174,8 @@ public class SourceGroup
 	 */
 	public boolean isCurrent()
 	{
+		if ( handle != null )
+			isCurrent = state.isCurrentGroup( handle );
 		return isCurrent;
 	}
 
@@ -135,6 +184,8 @@ public class SourceGroup
 	 */
 	public void setCurrent( final boolean isCurrent )
 	{
+		if ( handle != null && isCurrent )
+			state.setCurrentGroup( handle );
 		this.isCurrent = isCurrent;
 	}
 

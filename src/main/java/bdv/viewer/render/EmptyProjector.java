@@ -1,9 +1,8 @@
 /*
  * #%L
- * BigDataViewer core classes with minimal dependencies
+ * BigDataViewer core classes with minimal dependencies.
  * %%
- * Copyright (C) 2012 - 2016 Tobias Pietzsch, Stephan Saalfeld, Stephan Preibisch,
- * Jean-Yves Tinevez, HongKee Moon, Johannes Schindelin, Curtis Rueden, John Bogovic
+ * Copyright (C) 2012 - 2020 BigDataViewer developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -29,9 +28,15 @@
  */
 package bdv.viewer.render;
 
+import java.util.Arrays;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.img.array.ArrayImg;
+import net.imglib2.img.basictypeaccess.array.IntArray;
+import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.NumericType;
-import net.imglib2.ui.util.StopWatch;
+import net.imglib2.util.Intervals;
+import net.imglib2.util.StopWatch;
+import net.imglib2.util.Util;
 import net.imglib2.view.Views;
 
 public class EmptyProjector< T extends NumericType< T> > implements VolatileProjector
@@ -47,19 +52,23 @@ public class EmptyProjector< T extends NumericType< T> > implements VolatileProj
 	}
 
 	@Override
-	public boolean map()
-	{
-		return map( false );
-	}
-
-	@Override
 	public boolean map( final boolean clearUntouchedTargetPixels )
 	{
-		final StopWatch stopWatch = new StopWatch();
-		stopWatch.start();
+		final StopWatch stopWatch = StopWatch.createAndStart();
 		if ( clearUntouchedTargetPixels )
-			for ( final T t : Views.iterable( target ) )
-				t.setZero();
+		{
+			final int[] data = ProjectorUtils.getARGBArrayImgData( target );
+			if ( data != null )
+			{
+				final int size = ( int ) Intervals.numElements( target );
+				Arrays.fill( data, 0, size, 0 );
+			}
+			else
+			{
+				for ( final T t : Views.iterable( target ) )
+					t.setZero();
+			}
+		}
 		lastFrameRenderNanoTime = stopWatch.nanoTime();
 		return true;
 	}

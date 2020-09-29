@@ -1,19 +1,18 @@
 /*
  * #%L
- * BigDataViewer core classes with minimal dependencies
+ * BigDataViewer core classes with minimal dependencies.
  * %%
- * Copyright (C) 2012 - 2016 Tobias Pietzsch, Stephan Saalfeld, Stephan Preibisch,
- * Jean-Yves Tinevez, HongKee Moon, Johannes Schindelin, Curtis Rueden, John Bogovic
+ * Copyright (C) 2012 - 2020 BigDataViewer developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- *
+ * 
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- *
+ * 
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -31,6 +30,7 @@ package bdv.tools.boundingbox;
 
 import static bdv.tools.boundingbox.TransformedBoxOverlay.BoxDisplayMode.FULL;
 
+import bdv.viewer.ConverterSetups;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -45,7 +45,6 @@ import org.scijava.ui.behaviour.util.Behaviours;
 import org.scijava.ui.behaviour.util.TriggerBehaviourBindings;
 
 import bdv.tools.boundingbox.TransformedBoxOverlay.BoxDisplayMode;
-import bdv.tools.brightness.SetupAssignments;
 import bdv.viewer.ViewerPanel;
 
 /**
@@ -94,17 +93,19 @@ public class TransformedBoxEditor
 	public TransformedBoxEditor(
 			final InputTriggerConfig keyconf,
 			final ViewerPanel viewer,
-			final SetupAssignments setupAssignments,
+			final ConverterSetups converterSetups,
+			final int setupId,
 			final TriggerBehaviourBindings triggerbindings,
 			final AbstractTransformedBoxModel model )
 	{
-		this( keyconf, viewer, setupAssignments, triggerbindings, model, "selection", BoxSourceType.PLACEHOLDER );
+		this( keyconf, viewer, converterSetups, setupId, triggerbindings, model, "selection", BoxSourceType.PLACEHOLDER );
 	}
 
 	public TransformedBoxEditor(
 			final InputTriggerConfig keyconf,
 			final ViewerPanel viewer,
-			final SetupAssignments setupAssignments,
+			final ConverterSetups converterSetups,
+			final int setupId,
 			final TriggerBehaviourBindings triggerbindings,
 			final AbstractTransformedBoxModel model,
 			final String boxSourceName,
@@ -129,7 +130,7 @@ public class TransformedBoxEditor
 		switch ( boxSourceType )
 		{
 		case PLACEHOLDER:
-			boxSource = new TransformedBoxOverlaySource( boxSourceName, boxOverlay, model, viewer, setupAssignments );
+			boxSource = new TransformedBoxOverlaySource( boxSourceName, boxOverlay, model, viewer, converterSetups, setupId );
 			break;
 		case NONE:
 		default:
@@ -154,8 +155,8 @@ public class TransformedBoxEditor
 
 	public void install()
 	{
-		viewer.getDisplay().addOverlayRenderer( boxOverlay );
-		viewer.addRenderTransformListener( boxOverlay );
+		viewer.getDisplay().overlays().add( boxOverlay );
+		viewer.renderTransformListeners().add( boxOverlay );
 		viewer.getDisplay().addHandler( boxOverlay.getCornerHighlighter() );
 
 		refreshBlockMap();
@@ -167,7 +168,7 @@ public class TransformedBoxEditor
 
 	public void uninstall()
 	{
-		viewer.getDisplay().removeOverlayRenderer( boxOverlay );
+		viewer.getDisplay().overlays().remove( boxOverlay );
 		viewer.removeTransformListener( boxOverlay );
 		viewer.getDisplay().removeHandler( boxOverlay.getCornerHighlighter() );
 

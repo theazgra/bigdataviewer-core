@@ -1,9 +1,8 @@
 /*
  * #%L
- * BigDataViewer core classes with minimal dependencies
+ * BigDataViewer core classes with minimal dependencies.
  * %%
- * Copyright (C) 2012 - 2016 Tobias Pietzsch, Stephan Saalfeld, Stephan Preibisch,
- * Jean-Yves Tinevez, HongKee Moon, Johannes Schindelin, Curtis Rueden, John Bogovic
+ * Copyright (C) 2012 - 2020 BigDataViewer developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -29,6 +28,8 @@
  */
 package bdv.tools.crop;
 
+import bdv.viewer.SourceAndConverter;
+import bdv.viewer.ViewerState;
 import java.awt.BorderLayout;
 import java.awt.Frame;
 import java.awt.event.ActionEvent;
@@ -71,7 +72,6 @@ import bdv.spimdata.XmlIoSpimDataMinimal;
 import bdv.tools.transformation.TransformedSource;
 import bdv.viewer.Source;
 import bdv.viewer.ViewerPanel;
-import bdv.viewer.state.SourceState;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.generic.sequence.BasicViewSetup;
@@ -101,7 +101,7 @@ public class CropDialog extends JDialog
 	{
 		if ( b )
 		{
-			final int tp = viewer.getState().getCurrentTimepoint();
+			final int tp = viewer.state().getCurrentTimepoint();
 			spinnerMinTimepoint.setValue( tp );
 			spinnerMaxTimepoint.setValue( tp );
 		}
@@ -291,9 +291,6 @@ public class CropDialog extends JDialog
 	 */
 	public void cropGlobal( final int minTimepointIndex, final int maxTimepointIndex, final File hdf5File, final File xmlFile ) throws SpimDataException
 	{
-		final AffineTransform3D globalToCropTransform = new AffineTransform3D();
-		viewer.getState().getViewerTransform( globalToCropTransform );
-
 		final int w = viewer.getDisplay().getWidth();
 		final int h = viewer.getDisplay().getHeight();
 		final int d = Math.min( w, h );
@@ -322,30 +319,37 @@ public class CropDialog extends JDialog
 		// This is needed because the CropImgLoader is asked for (timepointId,
 		// setupId) pair and needs to retrieve from corresponding source.
 		final HashMap< Integer, Integer > setupIdToSourceIndex = new HashMap<>();
-		for( final SourceState< ? > s : viewer.getState().getSources() )
+
+		final AffineTransform3D globalToCropTransform = new AffineTransform3D();
+		final ViewerState state = viewer.state();
+		synchronized ( state )
 		{
-			Source< ? > source = s.getSpimSource();
-			sources.add( source );
-
-			// try to find the BasicViewSetup for the source
-			final BasicViewSetup setup;
-
-			// strip TransformedSource wrapper
-			while ( source instanceof TransformedSource )
-				source = ( ( TransformedSource< ? > ) source ).getWrappedSource();
-
-			if ( source instanceof AbstractSpimSource )
+			state.getViewerTransform( globalToCropTransform );
+			for ( SourceAndConverter< ? > s : state.getSources() )
 			{
-				 final int setupId = ( ( AbstractSpimSource< ? > ) source ).getSetupId();
-				 setup = sequenceDescription.getViewSetups().get( setupId );
+				Source< ? > source = s.getSpimSource();
+				sources.add( source );
+
+				// try to find the BasicViewSetup for the source
+				final BasicViewSetup setup;
+
+				// strip TransformedSource wrapper
+				while ( source instanceof TransformedSource )
+					source = ( ( TransformedSource< ? > ) source ).getWrappedSource();
+
+				if ( source instanceof AbstractSpimSource )
+				{
+					final int setupId = ( ( AbstractSpimSource< ? > ) source ).getSetupId();
+					setup = sequenceDescription.getViewSetups().get( setupId );
+				}
+				else
+				{
+					final int setupId = nextSetupIndex++;
+					setup = new BasicViewSetup( setupId, Integer.toString( setupId ), null, null );
+				}
+				cropSetups.put( setup.getId(), setup );
+				setupIdToSourceIndex.put( setup.getId(), sources.size() - 1 );
 			}
-			else
-			{
-				final int setupId = nextSetupIndex++;
-				setup = new BasicViewSetup( setupId, Integer.toString( setupId ), null, null );
-			}
-			cropSetups.put( setup.getId(), setup );
-			setupIdToSourceIndex.put( setup.getId(), sources.size() - 1 );
 		}
 
 		// Map from timepoint id to timepoint index (in the list of timepoints

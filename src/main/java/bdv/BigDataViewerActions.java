@@ -1,9 +1,8 @@
 /*
  * #%L
- * BigDataViewer core classes with minimal dependencies
+ * BigDataViewer core classes with minimal dependencies.
  * %%
- * Copyright (C) 2012 - 2016 Tobias Pietzsch, Stephan Saalfeld, Stephan Preibisch,
- * Jean-Yves Tinevez, HongKee Moon, Johannes Schindelin, Curtis Rueden, John Bogovic
+ * Copyright (C) 2012 - 2020 BigDataViewer developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -57,6 +56,8 @@ public class BigDataViewerActions extends Actions
 	public static final String MANUAL_TRANSFORM = "toggle manual transformation";
 	public static final String SAVE_SETTINGS = "save settings";
 	public static final String LOAD_SETTINGS = "load settings";
+	public static final String EXPAND_CARDS = "expand and focus cards panel";
+	public static final String COLLAPSE_CARDS = "collapse cards panel";
 	public static final String RECORD_MOVIE = "record movie";
 	public static final String RECORD_MAX_PROJECTION_MOVIE = "record max projection movie";
 	public static final String SET_BOOKMARK = "set bookmark";
@@ -72,6 +73,8 @@ public class BigDataViewerActions extends Actions
 	static final String[] RECORD_MOVIE_KEYS                = new String[] { "F10" };
 	static final String[] SAVE_SETTINGS_KEYS               = new String[] { "F11" };
 	static final String[] LOAD_SETTINGS_KEYS               = new String[] { "F12" };
+	public static final String[] EXPAND_CARDS_KEYS         = new String[] { "P" };
+	public static final String[] COLLAPSE_CARDS_KEYS       = new String[] { "shift P", "shift ESCAPE" };
 	static final String[] GO_TO_BOOKMARK_KEYS              = new String[] { "B" };
 	static final String[] GO_TO_BOOKMARK_ROTATION_KEYS     = new String[] { "O" };
 	static final String[] SET_BOOKMARK_KEYS                = new String[] { "shift B" };
@@ -104,6 +107,8 @@ public class BigDataViewerActions extends Actions
 		actions.manualTransform( bdv.manualTransformationEditor );
 		actions.runnableAction( bdv::loadSettings, LOAD_SETTINGS, LOAD_SETTINGS_KEYS );
 		actions.runnableAction( bdv::saveSettings, SAVE_SETTINGS, SAVE_SETTINGS_KEYS );
+		actions.runnableAction( bdv::expandAndFocusCardPanel, EXPAND_CARDS, EXPAND_CARDS_KEYS );
+		actions.runnableAction( bdv::collapseCardPanel, COLLAPSE_CARDS, COLLAPSE_CARDS_KEYS );
 
 		actions.install( inputActionBindings, "bdv" );
 	}
@@ -119,11 +124,13 @@ public class BigDataViewerActions extends Actions
 		new ToggleDialogAction( name, dialog ).put( getActionMap() );
 	}
 
+	@Deprecated
 	public void dialog( final BrightnessDialog brightnessDialog )
 	{
 		toggleDialogAction( brightnessDialog, BRIGHTNESS_SETTINGS, BRIGHTNESS_SETTINGS_KEYS );
 	}
 
+	@Deprecated
 	public void dialog( final VisibilityAndGroupingDialog visibilityAndGroupingDialog )
 	{
 		toggleDialogAction( visibilityAndGroupingDialog, VISIBILITY_AND_GROUPING, VISIBILITY_AND_GROUPING_KEYS );

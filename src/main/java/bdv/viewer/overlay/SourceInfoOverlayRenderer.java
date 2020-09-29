@@ -1,9 +1,8 @@
 /*
  * #%L
- * BigDataViewer core classes with minimal dependencies
+ * BigDataViewer core classes with minimal dependencies.
  * %%
- * Copyright (C) 2012 - 2016 Tobias Pietzsch, Stephan Saalfeld, Stephan Preibisch,
- * Jean-Yves Tinevez, HongKee Moon, Johannes Schindelin, Curtis Rueden, John Bogovic
+ * Copyright (C) 2012 - 2020 BigDataViewer developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -29,24 +28,19 @@
  */
 package bdv.viewer.overlay;
 
-import static bdv.viewer.DisplayMode.FUSEDGROUP;
-import static bdv.viewer.DisplayMode.GROUP;
-
 import java.awt.Font;
 import java.awt.Graphics2D;
 import java.util.List;
 
-import bdv.viewer.DisplayMode;
-import bdv.viewer.state.SourceGroup;
-import bdv.viewer.state.SourceState;
-import bdv.viewer.state.ViewerState;
+import bdv.viewer.SourceAndConverter;
+import bdv.viewer.ViewerState;
 import mpicbg.spim.data.sequence.TimePoint;
 
 /**
  * Render current source name and current timepoint of a {@link ViewerState}
  * into a {@link Graphics2D}.
  *
- * @author Tobias Pietzsch &lt;tobias.pietzsch@gmail.com&gt;
+ * @author Tobias Pietzsch
  */
 public class SourceInfoOverlayRenderer
 {
@@ -74,22 +68,29 @@ public class SourceInfoOverlayRenderer
 	/**
 	 * Update data to show in the overlay.
 	 */
+	@Deprecated
+	public synchronized void setViewerState( final bdv.viewer.state.ViewerState state )
+	{
+		synchronized ( state )
+		{
+			setViewerState( state.getState() );
+		}
+	}
+
+	/**
+	 * Update data to show in the overlay.
+	 */
 	public synchronized void setViewerState( final ViewerState state )
 	{
 		synchronized ( state )
 		{
-			final List< SourceState< ? > > sources = state.getSources();
-			if ( ! sources.isEmpty() )
-				sourceName = sources.get( state.getCurrentSource() ).getSpimSource().getName();
-			else
-				sourceName = "";
+			final SourceAndConverter< ? > currentSource = state.getCurrentSource();
+			sourceName = currentSource != null
+					? currentSource.getSpimSource().getName() : "";
 
-			final List< SourceGroup > groups = state.getSourceGroups();
-			final DisplayMode mode = state.getDisplayMode();
-			if ( ( mode == GROUP || mode == FUSEDGROUP ) && ! groups.isEmpty() )
-				groupName = groups.get( state.getCurrentGroup() ).getName();
-			else
-				groupName = "";
+			final bdv.viewer.SourceGroup currentGroup = state.getCurrentGroup();
+			groupName = currentGroup != null && state.getDisplayMode().hasGrouping()
+					? state.getGroupName( currentGroup ) : "";
 
 			final int t = state.getCurrentTimepoint();
 			if ( timePointsOrdered != null && t >= 0 && t < timePointsOrdered.size() )

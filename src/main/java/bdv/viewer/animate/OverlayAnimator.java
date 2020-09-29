@@ -1,9 +1,8 @@
 /*
  * #%L
- * BigDataViewer core classes with minimal dependencies
+ * BigDataViewer core classes with minimal dependencies.
  * %%
- * Copyright (C) 2012 - 2016 Tobias Pietzsch, Stephan Saalfeld, Stephan Preibisch,
- * Jean-Yves Tinevez, HongKee Moon, Johannes Schindelin, Curtis Rueden, John Bogovic
+ * Copyright (C) 2012 - 2020 BigDataViewer developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -33,7 +32,7 @@ import java.awt.Graphics2D;
 
 public interface OverlayAnimator
 {
-	public abstract void paint( final Graphics2D g, final long time );
+	void paint( final Graphics2D g, final long time );
 
 	/**
 	 * Returns true if the animation is complete and the animator can be
@@ -42,7 +41,7 @@ public interface OverlayAnimator
 	 * @return whether the animation is complete and the animator can be
 	 *         removed.
 	 */
-	public boolean isComplete();
+	boolean isComplete();
 
 	/**
 	 * Returns true if the animator requires an immediate repaint to continue
@@ -50,5 +49,5 @@ public interface OverlayAnimator
 	 *
 	 * @return whetherhe animator requires an immediate repaint.
 	 */
-	public boolean requiresRepaint();
+	boolean requiresRepaint();
 }

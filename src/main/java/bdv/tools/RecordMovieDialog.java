@@ -1,9 +1,8 @@
 /*
  * #%L
- * BigDataViewer core classes with minimal dependencies
+ * BigDataViewer core classes with minimal dependencies.
  * %%
- * Copyright (C) 2012 - 2016 Tobias Pietzsch, Stephan Saalfeld, Stephan Preibisch,
- * Jean-Yves Tinevez, HongKee Moon, Johannes Schindelin, Curtis Rueden, John Bogovic
+ * Copyright (C) 2012 - 2020 BigDataViewer developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -29,6 +28,16 @@
  */
 package bdv.tools;
 
+import bdv.cache.CacheControl;
+import bdv.export.ProgressWriter;
+import bdv.util.DelayedPackDialog;
+import bdv.util.Prefs;
+import bdv.viewer.BasicViewerState;
+import bdv.viewer.ViewerPanel;
+import bdv.viewer.ViewerState;
+import bdv.viewer.overlay.ScaleBarOverlayRenderer;
+import bdv.viewer.render.awt.BufferedImageRenderResult;
+import bdv.viewer.render.MultiResolutionRenderer;
 import java.awt.BorderLayout;
 import java.awt.Frame;
 import java.awt.Graphics;
@@ -39,7 +48,6 @@ import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-
 import javax.imageio.ImageIO;
 import javax.swing.AbstractAction;
 import javax.swing.Action;
@@ -48,7 +56,6 @@ import javax.swing.BoxLayout;
 import javax.swing.InputMap;
 import javax.swing.JButton;
 import javax.swing.JComponent;
-import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -56,23 +63,13 @@ import javax.swing.JSpinner;
 import javax.swing.JTextField;
 import javax.swing.KeyStroke;
 import javax.swing.SpinnerNumberModel;
-import javax.swing.WindowConstants;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
-
-import bdv.cache.CacheControl;
-import bdv.export.ProgressWriter;
-import bdv.util.Prefs;
-import bdv.viewer.ViewerPanel;
-import bdv.viewer.overlay.ScaleBarOverlayRenderer;
-import bdv.viewer.render.MultiResolutionRenderer;
-import bdv.viewer.state.ViewerState;
 import net.imglib2.realtransform.AffineTransform3D;
-import net.imglib2.ui.OverlayRenderer;
-import net.imglib2.ui.PainterThread;
-import net.imglib2.ui.RenderTarget;
+import bdv.viewer.OverlayRenderer;
+import bdv.viewer.render.RenderTarget;
 
-public class RecordMovieDialog extends JDialog implements OverlayRenderer
+public class RecordMovieDialog extends DelayedPackDialog implements OverlayRenderer
 {
 	private static final long serialVersionUID = 1L;
 
@@ -96,7 +93,7 @@ public class RecordMovieDialog extends JDialog implements OverlayRenderer
 	{
 		super( owner, "record movie", false );
 		this.viewer = viewer;
-		maxTimepoint = viewer.getState().getNumTimepoints() - 1;
+		maxTimepoint = viewer.state().getNumTimepoints() - 1;
 		this.progressWriter = progressWriter;
 
 		final JPanel boxes = new JPanel();
@@ -250,12 +247,11 @@ public class RecordMovieDialog extends JDialog implements OverlayRenderer
 		am.put( hideKey, hideAction );
 
 		pack();
-		setDefaultCloseOperation( WindowConstants.HIDE_ON_CLOSE );
 	}
 
 	public void recordMovie( final int width, final int height, final int minTimepointIndex, final int maxTimepointIndex, final File dir ) throws IOException
 	{
-		final ViewerState renderState = viewer.getState();
+		final ViewerState renderState = new BasicViewerState( viewer.state().snapshot() );
 		final int canvasW = viewer.getDisplay().getWidth();
 		final int canvasH = viewer.getDisplay().getHeight();
 
@@ -270,16 +266,25 @@ public class RecordMovieDialog extends JDialog implements OverlayRenderer
 
 		final ScaleBarOverlayRenderer scalebar = Prefs.showScaleBarInMovie() ? new ScaleBarOverlayRenderer() : null;
 
-		class MyTarget implements RenderTarget
+		class MyTarget implements RenderTarget< BufferedImageRenderResult >
 		{
-			BufferedImage bi;
+			final BufferedImageRenderResult renderResult = new BufferedImageRenderResult();
 
 			@Override
-			public BufferedImage setBufferedImage( final BufferedImage bufferedImage )
+			public BufferedImageRenderResult getReusableRenderResult()
 			{
-				bi = bufferedImage;
-				return null;
+				return renderResult;
 			}
+
+			@Override
+			public BufferedImageRenderResult createRenderResult()
+			{
+				return new BufferedImageRenderResult();
+			}
+
+			@Override
+			public void setRenderResult( final BufferedImageRenderResult renderResult )
+			{}
 
 			@Override
 			public int getWidth()
@@ -295,7 +300,7 @@ public class RecordMovieDialog extends JDialog implements OverlayRenderer
 		}
 		final MyTarget target = new MyTarget();
 		final MultiResolutionRenderer renderer = new MultiResolutionRenderer(
-				target, new PainterThread( null ), new double[] { 1 }, 0, false, 1, null, false,
+				target, () -> {}, new double[] { 1 }, 0, 1, null, false,
 				viewer.getOptionValues().getAccumulateProjectorFactory(), new CacheControl.Dummy() );
 		progressWriter.setProgress( 0 );
 		for ( int timepoint = minTimepointIndex; timepoint <= maxTimepointIndex; ++timepoint )
@@ -304,15 +309,16 @@ public class RecordMovieDialog extends JDialog implements OverlayRenderer
 			renderer.requestRepaint();
 			renderer.paint( renderState );
 
+			final BufferedImage bi = target.renderResult.getBufferedImage();
 			if ( Prefs.showScaleBarInMovie() )
 			{
-				final Graphics2D g2 = target.bi.createGraphics();
+				final Graphics2D g2 = bi.createGraphics();
 				g2.setClip( 0, 0, width, height );
 				scalebar.setViewerState( renderState );
 				scalebar.paint( g2 );
 			}
 
-			ImageIO.write( target.bi, "png", new File( String.format( "%s/img-%03d.png", dir, timepoint ) ) );
+			ImageIO.write( bi, "png", new File( String.format( "%s/img-%03d.png", dir, timepoint ) ) );
 			progressWriter.setProgress( ( double ) (timepoint - minTimepointIndex + 1) / (maxTimepointIndex - minTimepointIndex + 1) );
 		}
 	}

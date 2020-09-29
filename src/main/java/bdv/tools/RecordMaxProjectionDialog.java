@@ -1,9 +1,8 @@
 /*
  * #%L
- * BigDataViewer core classes with minimal dependencies
+ * BigDataViewer core classes with minimal dependencies.
  * %%
- * Copyright (C) 2012 - 2016 Tobias Pietzsch, Stephan Saalfeld, Stephan Preibisch,
- * Jean-Yves Tinevez, HongKee Moon, Johannes Schindelin, Curtis Rueden, John Bogovic
+ * Copyright (C) 2012 - 2020 BigDataViewer developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -29,6 +28,16 @@
  */
 package bdv.tools;
 
+import bdv.cache.CacheControl;
+import bdv.export.ProgressWriter;
+import bdv.util.DelayedPackDialog;
+import bdv.util.Prefs;
+import bdv.viewer.BasicViewerState;
+import bdv.viewer.ViewerPanel;
+import bdv.viewer.ViewerState;
+import bdv.viewer.overlay.ScaleBarOverlayRenderer;
+import bdv.viewer.render.awt.BufferedImageRenderResult;
+import bdv.viewer.render.MultiResolutionRenderer;
 import java.awt.BorderLayout;
 import java.awt.Frame;
 import java.awt.Graphics;
@@ -40,7 +49,6 @@ import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 import java.io.File;
 import java.io.IOException;
-
 import javax.imageio.ImageIO;
 import javax.swing.AbstractAction;
 import javax.swing.Action;
@@ -49,7 +57,6 @@ import javax.swing.BoxLayout;
 import javax.swing.InputMap;
 import javax.swing.JButton;
 import javax.swing.JComponent;
-import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -57,29 +64,19 @@ import javax.swing.JSpinner;
 import javax.swing.JTextField;
 import javax.swing.KeyStroke;
 import javax.swing.SpinnerNumberModel;
-import javax.swing.WindowConstants;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
-
 import net.imglib2.Cursor;
 import net.imglib2.display.screenimage.awt.ARGBScreenImage;
 import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.ARGBType;
-import net.imglib2.ui.OverlayRenderer;
-import net.imglib2.ui.PainterThread;
-import net.imglib2.ui.RenderTarget;
+import bdv.viewer.OverlayRenderer;
+import bdv.viewer.render.RenderTarget;
 import net.imglib2.util.LinAlgHelpers;
-import bdv.cache.CacheControl;
-import bdv.export.ProgressWriter;
-import bdv.util.Prefs;
-import bdv.viewer.ViewerPanel;
-import bdv.viewer.overlay.ScaleBarOverlayRenderer;
-import bdv.viewer.render.MultiResolutionRenderer;
-import bdv.viewer.state.ViewerState;
 
-public class RecordMaxProjectionDialog extends JDialog implements OverlayRenderer
+public class RecordMaxProjectionDialog extends DelayedPackDialog implements OverlayRenderer
 {
 	private static final long serialVersionUID = 1L;
 
@@ -107,7 +104,7 @@ public class RecordMaxProjectionDialog extends JDialog implements OverlayRendere
 	{
 		super( owner, "record max projection movie", false );
 		this.viewer = viewer;
-		maxTimepoint = viewer.getState().getNumTimepoints() - 1;
+		maxTimepoint = viewer.state().getNumTimepoints() - 1;
 		this.progressWriter = progressWriter;
 
 		final JPanel boxes = new JPanel();
@@ -277,7 +274,6 @@ public class RecordMaxProjectionDialog extends JDialog implements OverlayRendere
 		am.put( hideKey, hideAction );
 
 		pack();
-		setDefaultCloseOperation( WindowConstants.HIDE_ON_CLOSE );
 	}
 
 	/**
@@ -285,7 +281,7 @@ public class RecordMaxProjectionDialog extends JDialog implements OverlayRendere
 	 */
 	public void recordMovie( final int width, final int height, final int minTimepointIndex, final int maxTimepointIndex, final double stepSize, final int numSteps, final File dir ) throws IOException
 	{
-		final ViewerState renderState = viewer.getState();
+		final ViewerState renderState = new BasicViewerState( viewer.state().snapshot() );
 		final int canvasW = viewer.getDisplay().getWidth();
 		final int canvasH = viewer.getDisplay().getHeight();
 
@@ -314,14 +310,11 @@ public class RecordMaxProjectionDialog extends JDialog implements OverlayRendere
 
 		final ScaleBarOverlayRenderer scalebar = Prefs.showScaleBarInMovie() ? new ScaleBarOverlayRenderer() : null;
 
-		class MyTarget implements RenderTarget
+		class MyTarget implements RenderTarget< BufferedImageRenderResult >
 		{
-			final ARGBScreenImage accumulated;
+			final ARGBScreenImage accumulated = new ARGBScreenImage( width, height );
 
-			public MyTarget()
-			{
-				accumulated = new ARGBScreenImage( width, height );
-			}
+			final BufferedImageRenderResult renderResult = new BufferedImageRenderResult();
 
 			public void clear()
 			{
@@ -330,8 +323,21 @@ public class RecordMaxProjectionDialog extends JDialog implements OverlayRendere
 			}
 
 			@Override
-			public BufferedImage setBufferedImage( final BufferedImage bufferedImage )
+			public BufferedImageRenderResult getReusableRenderResult()
 			{
+				return renderResult;
+			}
+
+			@Override
+			public BufferedImageRenderResult createRenderResult()
+			{
+				return new BufferedImageRenderResult();
+			}
+
+			@Override
+			public void setRenderResult( final BufferedImageRenderResult renderResult )
+			{
+				final BufferedImage bufferedImage = renderResult.getBufferedImage();
 				final Img< ARGBType > argbs = ArrayImgs.argbs( ( ( DataBufferInt ) bufferedImage.getData().getDataBuffer() ).getData(), width, height );
 				final Cursor< ARGBType > c = argbs.cursor();
 				for ( final ARGBType acc : accumulated )
@@ -344,7 +350,6 @@ public class RecordMaxProjectionDialog extends JDialog implements OverlayRendere
 							Math.max( ARGBType.blue( in ), ARGBType.blue( current ) ),
 							Math.max( ARGBType.alpha( in ), ARGBType.alpha( current ) )	) );
 				}
-				return null;
 			}
 
 			@Override
@@ -361,7 +366,7 @@ public class RecordMaxProjectionDialog extends JDialog implements OverlayRendere
 		}
 		final MyTarget target = new MyTarget();
 		final MultiResolutionRenderer renderer = new MultiResolutionRenderer(
-				target, new PainterThread( null ), new double[] { 1 }, 0, false, 1, null, false,
+				target, () -> {}, new double[] { 1 }, 0, 1, null, false,
 				viewer.getOptionValues().getAccumulateProjectorFactory(), new CacheControl.Dummy() );
 		progressWriter.setProgress( 0 );
 		for ( int timepoint = minTimepointIndex; timepoint <= maxTimepointIndex; ++timepoint )

@@ -1,9 +1,8 @@
 /*
  * #%L
- * BigDataViewer core classes with minimal dependencies
+ * BigDataViewer core classes with minimal dependencies.
  * %%
- * Copyright (C) 2012 - 2016 Tobias Pietzsch, Stephan Saalfeld, Stephan Preibisch,
- * Jean-Yves Tinevez, HongKee Moon, Johannes Schindelin, Curtis Rueden, John Bogovic
+ * Copyright (C) 2012 - 2020 BigDataViewer developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -33,9 +32,9 @@ import java.io.PrintStream;
 
 public interface ProgressWriter
 {
-	public PrintStream out();
+	PrintStream out();
 
-	public PrintStream err();
+	PrintStream err();
 
-	public void setProgress( double completionRatio );
+	void setProgress( double completionRatio );
 }

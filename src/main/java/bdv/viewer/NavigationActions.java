@@ -1,9 +1,8 @@
 /*
  * #%L
- * BigDataViewer core classes with minimal dependencies
+ * BigDataViewer core classes with minimal dependencies.
  * %%
- * Copyright (C) 2012 - 2016 Tobias Pietzsch, Stephan Saalfeld, Stephan Preibisch,
- * Jean-Yves Tinevez, HongKee Moon, Johannes Schindelin, Curtis Rueden, John Bogovic
+ * Copyright (C) 2012 - 2020 BigDataViewer developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -29,6 +28,8 @@
  */
 package bdv.viewer;
 
+import java.util.ArrayList;
+import java.util.List;
 import javax.swing.ActionMap;
 import javax.swing.InputMap;
 
@@ -90,23 +91,31 @@ public class NavigationActions extends Actions
 	public void modes( final ViewerPanel viewer )
 	{
 		runnableAction(
-				() -> viewer.toggleInterpolation(),
+				viewer::toggleInterpolation,
 				TOGGLE_INTERPOLATION, "I" );
 		runnableAction(
-				() -> viewer.getVisibilityAndGrouping().setFusedEnabled( !viewer.visibilityAndGrouping.isFusedEnabled() ),
+				() -> {
+					final ViewerState state = viewer.state();
+					final DisplayMode mode = state.getDisplayMode();
+					state.setDisplayMode( mode.withFused( !mode.hasFused() ) );
+				},
 				TOGGLE_FUSED_MODE, "F" );
 		runnableAction(
-				() -> viewer.getVisibilityAndGrouping().setGroupingEnabled( !viewer.visibilityAndGrouping.isGroupingEnabled() ),
+				() -> {
+					final ViewerState state = viewer.state();
+					final DisplayMode mode = state.getDisplayMode();
+					state.setDisplayMode( mode.withGrouping( !mode.hasGrouping() ) );
+				},
 				TOGGLE_GROUPING, "G" );
 	}
 
 	public void time( final ViewerPanel viewer )
 	{
 		runnableAction(
-				() -> viewer.nextTimePoint(),
+				viewer::nextTimePoint,
 				NEXT_TIMEPOINT, "CLOSE_BRACKET", "M" );
 		runnableAction(
-				() -> viewer.previousTimePoint(),
+				viewer::previousTimePoint,
 				PREVIOUS_TIMEPOINT, "OPEN_BRACKET", "N" );
 	}
 
@@ -117,10 +126,10 @@ public class NavigationActions extends Actions
 		{
 			final int sourceIndex = i;
 			runnableAction(
-					() -> viewer.getVisibilityAndGrouping().setCurrentGroupOrSource( sourceIndex ),
+					() -> setCurrentGroupOrSource( viewer, sourceIndex ),
 					String.format( SET_CURRENT_SOURCE, i ), numkeys[ i ] );
 			runnableAction(
-					() -> viewer.getVisibilityAndGrouping().toggleActiveGroupOrSource( sourceIndex ),
+					() -> toggleGroupOrSourceActive( viewer, sourceIndex ),
 					String.format( TOGGLE_SOURCE_VISIBILITY, i ), "shift " + numkeys[ i ] );
 		}
 	}
@@ -130,5 +139,60 @@ public class NavigationActions extends Actions
 		alignPlaneAction( viewer, AlignPlane.XY, "shift Z" );
 		alignPlaneAction( viewer, AlignPlane.ZY, "shift X" );
 		alignPlaneAction( viewer, AlignPlane.XZ, "shift Y", "shift A" );
+	}
+
+	private static void setCurrentGroupOrSource( final ViewerPanel viewer, final int index )
+	{
+		final ViewerState state = viewer.state();
+		synchronized ( state )
+		{
+			if ( state.getDisplayMode().hasGrouping() )
+			{
+				final List< SourceGroup > groups = state.getGroups();
+				if ( index >= 0 && index < groups.size() )
+				{
+					final SourceGroup group = groups.get( index );
+					state.setCurrentGroup( group );
+					final List< SourceAndConverter< ? > > sources = new ArrayList<>( state.getSourcesInGroup( group ) );
+					if ( !sources.isEmpty() )
+					{
+						sources.sort( state.sourceOrder() );
+						state.setCurrentSource( sources.get( 0 ) );
+					}
+				}
+			}
+			else
+			{
+				final List< SourceAndConverter< ? > > sources = state.getSources();
+				if ( index >= 0 && index < sources.size() )
+					state.setCurrentSource( sources.get( index ) );
+			}
+		}
+	}
+
+	private static void toggleGroupOrSourceActive( final ViewerPanel viewer, final int index )
+	{
+		final ViewerState state = viewer.state();
+		synchronized ( state )
+		{
+			if ( state.getDisplayMode().hasGrouping() )
+			{
+				final List< SourceGroup > groups = state.getGroups();
+				if ( index >= 0 && index < groups.size() )
+				{
+					final SourceGroup group = groups.get( index );
+					state.setGroupActive( group, !state.isGroupActive( group ) );
+				}
+			}
+			else
+			{
+				final List< SourceAndConverter< ? > > sources = state.getSources();
+				if ( index >= 0 && index < sources.size() )
+				{
+					final SourceAndConverter< ? > source = sources.get( index );
+					state.setSourceActive( source, !state.isSourceActive( source ) );
+				}
+			}
+		}
 	}
 }

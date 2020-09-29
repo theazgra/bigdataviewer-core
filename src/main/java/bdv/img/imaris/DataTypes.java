@@ -1,9 +1,8 @@
 /*
  * #%L
- * BigDataViewer core classes with minimal dependencies
+ * BigDataViewer core classes with minimal dependencies.
  * %%
- * Copyright (C) 2012 - 2016 Tobias Pietzsch, Stephan Saalfeld, Stephan Preibisch,
- * Jean-Yves Tinevez, HongKee Moon, Johannes Schindelin, Curtis Rueden, John Bogovic
+ * Copyright (C) 2012 - 2020 BigDataViewer developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -45,16 +44,16 @@ import net.imglib2.type.volatiles.VolatileUnsignedShortType;
 
 class DataTypes
 {
-	static interface DataType<
+	interface DataType<
 			T extends NativeType< T >,
 			V extends Volatile< T > & NativeType< V > ,
 			A extends VolatileAccess >
 	{
-		public T getType();
+		T getType();
 
-		public V getVolatileType();
+		V getVolatileType();
 
-		public CacheArrayLoader< A > createArrayLoader( final IHDF5Access hdf5Access );
+		CacheArrayLoader< A > createArrayLoader( final IHDF5Access hdf5Access );
 	}
 
 	static DataType< UnsignedByteType, VolatileUnsignedByteType, VolatileByteArray > UnsignedByte =

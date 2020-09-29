@@ -1,19 +1,18 @@
 /*
  * #%L
- * BigDataViewer core classes with minimal dependencies
+ * BigDataViewer core classes with minimal dependencies.
  * %%
- * Copyright (C) 2012 - 2016 Tobias Pietzsch, Stephan Saalfeld, Stephan Preibisch,
- * Jean-Yves Tinevez, HongKee Moon, Johannes Schindelin, Curtis Rueden, John Bogovic
+ * Copyright (C) 2012 - 2020 BigDataViewer developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- *
+ * 
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- *
+ * 
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -202,22 +201,63 @@ public class VolatileGlobalCellCache implements CacheControl
 			final CacheArrayLoader< A > cacheArrayLoader,
 			final T type )
 	{
-		final CacheLoader< Long, Cell< ? > > loader = new CacheLoader< Long, Cell< ? > >()
-		{
-			@Override
-			public Cell< A > get( final Long key ) throws Exception
-			{
-				final int n = grid.numDimensions();
-				final long[] cellMin = new long[ n ];
-				final int[] cellDims = new int[ n ];
-				grid.getCellDimensions( key, cellMin, cellDims );
-				return new Cell<>(
-						cellDims,
-						cellMin,
-						cacheArrayLoader.loadArray( timepoint, setup, level, cellDims, cellMin ) );
-			}
+		final CacheLoader< Long, Cell< ? > > loader = key -> {
+			final int n = grid.numDimensions();
+			final long[] cellMin = new long[ n ];
+			final int[] cellDims = new int[ n ];
+			grid.getCellDimensions( key, cellMin, cellDims );
+			return new Cell<>(
+					cellDims,
+					cellMin,
+					cacheArrayLoader.loadArray( timepoint, setup, level, cellDims, cellMin ) );
 		};
+		return createImg( grid, timepoint, setup, level, cacheHints, loader, cacheArrayLoader.getEmptyArrayCreator(), type );
+	}
 
+	/**
+	 * Create a {@link VolatileCachedCellImg} backed by this {@link VolatileGlobalCellCache},
+	 * using the provided {@link SimpleCacheArrayLoader} to load data.
+	 *
+	 * @param grid
+	 * @param timepoint
+	 * @param setup
+	 * @param level
+	 * @param cacheHints
+	 * @param cacheArrayLoader
+	 * @param type
+	 * @return
+	 */
+	public < T extends NativeType< T >, A > VolatileCachedCellImg< T, A > createImg(
+			final CellGrid grid,
+			final int timepoint,
+			final int setup,
+			final int level,
+			final CacheHints cacheHints,
+			final SimpleCacheArrayLoader< A > cacheArrayLoader,
+			final T type )
+	{
+		final CacheLoader< Long, Cell< ? > > loader = key -> {
+			final int n = grid.numDimensions();
+			final long[] cellMin = new long[ n ];
+			final int[] cellDims = new int[ n ];
+			final long[] cellGridPosition = new long[ n ];
+			grid.getCellDimensions( key, cellMin, cellDims );
+			grid.getCellGridPositionFlat( key, cellGridPosition );
+			return new Cell<>( cellDims, cellMin, cacheArrayLoader.loadArray( cellGridPosition ) );
+		};
+		return createImg( grid, timepoint, setup, level, cacheHints, loader, cacheArrayLoader.getEmptyArrayCreator(), type );
+	}
+
+	private < T extends NativeType< T >, A > VolatileCachedCellImg< T, A > createImg(
+			final CellGrid grid,
+			final int timepoint,
+			final int setup,
+			final int level,
+			final CacheHints cacheHints,
+			final CacheLoader< Long, Cell< ? > > loader,
+			final EmptyArrayCreator< A > emptyArrayCreator, // optional, can be null
+			final T type )
+	{
 		final KeyBimap< Long, Key > bimap = KeyBimap.build(
 				index -> new Key( timepoint, setup, level, index ),
 				key -> ( key.timepoint == timepoint && key.setup == setup && key.level == level )
@@ -228,14 +268,13 @@ public class VolatileGlobalCellCache implements CacheControl
 				.mapKeys( bimap )
 				.withLoader( loader );
 
-		final EmptyArrayCreator< A > emptyArrayCreator = cacheArrayLoader.getEmptyArrayCreator();
 		final CreateInvalidVolatileCell< ? > createInvalid = ( emptyArrayCreator == null )
 				? CreateInvalidVolatileCell.get( grid, type, false )
 				: new CreateInvalidVolatileCell<>( grid, type.getEntitiesPerPixel(), emptyArrayCreator );
 
 		final UncheckedVolatileCache< Long, Cell< ? > > vcache = new WeakRefVolatileCache<>(
 				cache, queue, createInvalid )
-						.unchecked();
+				.unchecked();
 
 		@SuppressWarnings( "unchecked" )
 		final VolatileCachedCellImg< T, A > img = new VolatileCachedCellImg<>( grid, type, cacheHints,

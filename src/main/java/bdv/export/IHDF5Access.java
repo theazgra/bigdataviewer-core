@@ -1,9 +1,8 @@
 /*
  * #%L
- * BigDataViewer core classes with minimal dependencies
+ * BigDataViewer core classes with minimal dependencies.
  * %%
- * Copyright (C) 2012 - 2016 Tobias Pietzsch, Stephan Saalfeld, Stephan Preibisch,
- * Jean-Yves Tinevez, HongKee Moon, Johannes Schindelin, Curtis Rueden, John Bogovic
+ * Copyright (C) 2012 - 2020 BigDataViewer developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -34,16 +33,16 @@ import ch.systemsx.cisd.hdf5.IHDF5Writer;
 
 interface IHDF5Access
 {
-	public void writeMipmapDescription( final int setupIdPartition, final ExportMipmapInfo mipmapInfo );
+	void writeMipmapDescription( final int setupIdPartition, final ExportMipmapInfo mipmapInfo );
 
-	public void createAndOpenDataset( final String path, long[] dimensions, int[] cellDimensions, HDF5IntStorageFeatures features );
+	void createAndOpenDataset( final String path, long[] dimensions, int[] cellDimensions, HDF5IntStorageFeatures features );
 
-	public void writeBlockWithOffset( final short[] data, final long[] blockDimensions, final long[] offset );
+	void writeBlockWithOffset( final short[] data, final long[] blockDimensions, final long[] offset );
 
-	public void closeDataset();
+	void closeDataset();
 
-	public void close();
+	void close();
 
 	// this is for sharing with Hdf5ImageLoader for loopback loader when exporting
-	public IHDF5Writer getIHDF5Writer();
+	IHDF5Writer getIHDF5Writer();
 }

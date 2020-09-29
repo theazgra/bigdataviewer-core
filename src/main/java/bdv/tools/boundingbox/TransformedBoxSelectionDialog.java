@@ -1,19 +1,18 @@
 /*
  * #%L
- * BigDataViewer core classes with minimal dependencies
+ * BigDataViewer core classes with minimal dependencies.
  * %%
- * Copyright (C) 2012 - 2016 Tobias Pietzsch, Stephan Saalfeld, Stephan Preibisch,
- * Jean-Yves Tinevez, HongKee Moon, Johannes Schindelin, Curtis Rueden, John Bogovic
+ * Copyright (C) 2012 - 2020 BigDataViewer developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- *
+ * 
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- *
+ * 
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -31,6 +30,7 @@ package bdv.tools.boundingbox;
 
 import static bdv.tools.boundingbox.BoxSelectionOptions.TimepointSelection.NONE;
 
+import bdv.viewer.ConverterSetups;
 import java.awt.BorderLayout;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
@@ -52,7 +52,6 @@ import net.imglib2.realtransform.AffineTransform3D;
 import org.scijava.ui.behaviour.io.InputTriggerConfig;
 import org.scijava.ui.behaviour.util.TriggerBehaviourBindings;
 
-import bdv.tools.brightness.SetupAssignments;
 import bdv.viewer.ViewerPanel;
 
 /**
@@ -79,7 +78,8 @@ public class TransformedBoxSelectionDialog extends AbstractTransformedBoxSelecti
 
 	public TransformedBoxSelectionDialog(
 			final ViewerPanel viewer,
-			final SetupAssignments setupAssignments,
+			final ConverterSetups converterSetups,
+			final int setupId,
 			final InputTriggerConfig keyConfig,
 			final TriggerBehaviourBindings triggerbindings,
 			final AffineTransform3D boxTransform,
@@ -106,7 +106,8 @@ public class TransformedBoxSelectionDialog extends AbstractTransformedBoxSelecti
 		boxEditor = new TransformedBoxEditor(
 				keyConfig,
 				viewer,
-				setupAssignments,
+				converterSetups,
+				setupId,
 				triggerbindings,
 				model );
 		boxEditor.setPerspective( 1, 1000 ); // TODO expose, initialize from rangeInterval

@@ -1,9 +1,8 @@
 /*
  * #%L
- * BigDataViewer core classes with minimal dependencies
+ * BigDataViewer core classes with minimal dependencies.
  * %%
- * Copyright (C) 2012 - 2016 Tobias Pietzsch, Stephan Saalfeld, Stephan Preibisch,
- * Jean-Yves Tinevez, HongKee Moon, Johannes Schindelin, Curtis Rueden, John Bogovic
+ * Copyright (C) 2012 - 2020 BigDataViewer developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -42,9 +41,9 @@ class Hdf5BlockWriterThread extends Thread implements IHDF5Access
 {
 	private final IHDF5Access hdf5Access;
 
-	private static interface Hdf5Task
+	private interface Hdf5Task
 	{
-		public void run( final IHDF5Access hdf5Access );
+		void run( final IHDF5Access hdf5Access );
 	}
 
 	private final BlockingQueue< Hdf5BlockWriterThread.Hdf5Task > queue;
@@ -163,6 +162,7 @@ class Hdf5BlockWriterThread extends Thread implements IHDF5Access
 	public void closeDataset()
 	{
 		put( new CloseDatasetTask() );
+		waitUntilEmpty();
 	}
 
 	private boolean put( final Hdf5BlockWriterThread.Hdf5Task task )

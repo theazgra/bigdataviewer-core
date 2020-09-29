@@ -1,9 +1,8 @@
 /*
  * #%L
- * BigDataViewer core classes with minimal dependencies
+ * BigDataViewer core classes with minimal dependencies.
  * %%
- * Copyright (C) 2012 - 2016 Tobias Pietzsch, Stephan Saalfeld, Stephan Preibisch,
- * Jean-Yves Tinevez, HongKee Moon, Johannes Schindelin, Curtis Rueden, John Bogovic
+ * Copyright (C) 2012 - 2020 BigDataViewer developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -53,6 +52,44 @@ public enum DisplayMode
 	public String getName()
 	{
 		return name;
+	}
+
+	public DisplayMode withFused( final boolean activate )
+	{
+		switch ( this )
+		{
+		default:
+		case SINGLE:
+		case FUSED:
+			return activate ? FUSED : SINGLE;
+		case GROUP:
+		case FUSEDGROUP:
+			return activate ? FUSEDGROUP : GROUP;
+		}
+	}
+
+	public DisplayMode withGrouping( final boolean activate )
+	{
+		switch ( this )
+		{
+		default:
+		case SINGLE:
+		case GROUP:
+			return activate ? GROUP : SINGLE;
+		case FUSED:
+		case FUSEDGROUP:
+			return activate ? FUSEDGROUP : FUSED;
+		}
+	}
+
+	public boolean hasFused()
+	{
+		return this == FUSED || this == FUSEDGROUP;
+	}
+
+	public boolean hasGrouping()
+	{
+		return this == GROUP || this == FUSEDGROUP;
 	}
 
 	public static final int length;

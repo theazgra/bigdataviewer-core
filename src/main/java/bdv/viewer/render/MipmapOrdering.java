@@ -1,9 +1,8 @@
 /*
  * #%L
- * BigDataViewer core classes with minimal dependencies
+ * BigDataViewer core classes with minimal dependencies.
  * %%
- * Copyright (C) 2012 - 2016 Tobias Pietzsch, Stephan Saalfeld, Stephan Preibisch,
- * Jean-Yves Tinevez, HongKee Moon, Johannes Schindelin, Curtis Rueden, John Bogovic
+ * Copyright (C) 2012 - 2020 BigDataViewer developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -48,9 +47,9 @@ public interface MipmapOrdering
 	 * @param previousTimepoint
 	 *            previous timepoint index
 	 */
-	public MipmapHints getMipmapHints( AffineTransform3D screenTransform, int timepoint, int previousTimepoint );
+	MipmapHints getMipmapHints( AffineTransform3D screenTransform, int timepoint, int previousTimepoint );
 
-	public static class Level
+	class Level
 	{
 		// level index in Source
 		private final int mipmapLevel;
@@ -112,7 +111,7 @@ public interface MipmapOrdering
 		}
 	}
 
-	public static class RenderOrderComparator implements Comparator< Level >
+	class RenderOrderComparator implements Comparator< Level >
 	{
 		@Override
 		public int compare( final Level o1, final Level o2 )
@@ -121,7 +120,7 @@ public interface MipmapOrdering
 		}
 	}
 
-	public static class PrefetchOrderComparator implements Comparator< Level >
+	class PrefetchOrderComparator implements Comparator< Level >
 	{
 		@Override
 		public int compare( final Level o1, final Level o2 )
@@ -130,11 +129,11 @@ public interface MipmapOrdering
 		}
 	}
 
-	public static RenderOrderComparator renderOrderComparator = new RenderOrderComparator();
+	RenderOrderComparator renderOrderComparator = new RenderOrderComparator();
 
-	public static PrefetchOrderComparator prefetchOrderComparator = new PrefetchOrderComparator();
+	PrefetchOrderComparator prefetchOrderComparator = new PrefetchOrderComparator();
 
-	public static class MipmapHints
+	class MipmapHints
 	{
 		private final List< Level > levels;
 

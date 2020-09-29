@@ -1,9 +1,8 @@
 /*
  * #%L
- * BigDataViewer core classes with minimal dependencies
+ * BigDataViewer core classes with minimal dependencies.
  * %%
- * Copyright (C) 2012 - 2016 Tobias Pietzsch, Stephan Saalfeld, Stephan Preibisch,
- * Jean-Yves Tinevez, HongKee Moon, Johannes Schindelin, Curtis Rueden, John Bogovic
+ * Copyright (C) 2012 - 2020 BigDataViewer developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -30,7 +29,6 @@
 package bdv.img.cache;
 
 import bdv.ViewerImgLoader;
-import bdv.img.catmaid.CatmaidImageLoader;
 import net.imglib2.img.basictypeaccess.volatiles.VolatileAccess;
 import net.imglib2.img.basictypeaccess.volatiles.VolatileArrayDataAccess;
 import net.imglib2.img.basictypeaccess.volatiles.array.DirtyVolatileByteArray;
@@ -58,7 +56,7 @@ import net.imglib2.type.NativeType;
  *            type of access to cell data, currently always a
  *            {@link VolatileAccess}.
  *
- * @author Tobias Pietzsch &lt;tobias.pietzsch@gmail.com&gt;
+ * @author Tobias Pietzsch
  */
 public interface CacheArrayLoader< A >
 {
@@ -69,7 +67,7 @@ public interface CacheArrayLoader< A >
 	 *
 	 * @return number of bytes required to store one element.
 	 */
-	public default int getBytesPerElement()
+	default int getBytesPerElement()
 	{
 		return 1;
 	}
@@ -103,7 +101,7 @@ public interface CacheArrayLoader< A >
 	 *
 	 * @return an {@link EmptyArrayCreator} for {@code A} or null.
 	 */
-	public default EmptyArrayCreator< A > getEmptyArrayCreator()
+	default EmptyArrayCreator< A > getEmptyArrayCreator()
 	{
 		return null;
 	}
@@ -128,10 +126,10 @@ public interface CacheArrayLoader< A >
 	 * back-end. You do not need to be able to load blocks of arbitrary sizes
 	 * and offsets here -- just the ones that you will use from the images
 	 * returned by your {@link ViewerImgLoader}. For an example, look at
-	 * {@link CatmaidImageLoader}. There, the blockDimensions are defined in the
+	 * {@code CatmaidImageLoader}. There, the blockDimensions are defined in the
 	 * constructor, according to the tile size of the data set. These
 	 * blockDimensions are then used for every image that the
-	 * {@link CatmaidImageLoader} provides. Therefore, all calls to
+	 * {@code CatmaidImageLoader} provides. Therefore, all calls to
 	 * {@link #loadArray(int, int, int, int[], long[])} will have predictable
 	 * {@code dimensions} (corresponding to tile size of the data set) and
 	 * {@code min} offsets (multiples of the tile size).
@@ -156,5 +154,6 @@ public interface CacheArrayLoader< A >
 	 *            the min coordinate of the block in the stack (in voxels).
 	 * @return loaded cell data.
 	 */
-	public A loadArray( final int timepoint, final int setup, final int level, int[] dimensions, long[] min ) throws InterruptedException;
+	// TODO: It would make more sense to throw IOException here. Declare both IOException and InterruptedException. Throw IOException in bdv-core implementations.
+	A loadArray( final int timepoint, final int setup, final int level, int[] dimensions, long[] min ) throws InterruptedException;
 }

@@ -1,19 +1,18 @@
 /*
  * #%L
- * BigDataViewer core classes with minimal dependencies
+ * BigDataViewer core classes with minimal dependencies.
  * %%
- * Copyright (C) 2012 - 2016 Tobias Pietzsch, Stephan Saalfeld, Stephan Preibisch,
- * Jean-Yves Tinevez, HongKee Moon, Johannes Schindelin, Curtis Rueden, John Bogovic
+ * Copyright (C) 2012 - 2020 BigDataViewer developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- *
+ * 
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- *
+ * 
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -52,6 +51,7 @@ import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
 
 import bdv.tools.boundingbox.BoxSelectionPanel.Box;
+import bdv.tools.brightness.ConverterSetup.SetupChangeListener;
 import bdv.tools.brightness.RealARGBColorConverterSetup;
 import bdv.tools.brightness.SetupAssignments;
 import bdv.tools.transformation.TransformedSource;
@@ -134,7 +134,8 @@ public class BoundingBoxDialog extends JDialog
 
 		// create a ConverterSetup (can be used by the brightness dialog to adjust the converter settings)
 		boxConverterSetup = new RealARGBColorConverterSetup( boxSetupId, converter );
-		boxConverterSetup.setViewer( viewer );
+		final SetupChangeListener requestRepaint = s -> viewer.requestRepaint();
+		boxConverterSetup.setupChangeListeners().add( requestRepaint );
 
 		// create a SourceAndConverter (can be added to the viewer for display)
 		final TransformedSource< UnsignedShortType > ts = new TransformedSource<>( boxSource );
@@ -186,7 +187,7 @@ public class BoundingBoxDialog extends JDialog
 				{
 					viewer.addSource( boxSourceAndConverter );
 					setupAssignments.addSetup( boxConverterSetup );
-					boxConverterSetup.setViewer( viewer );
+					boxConverterSetup.setupChangeListeners().add( requestRepaint );
 
 					final int bbSourceIndex = viewer.getState().numSources() - 1;
 					final VisibilityAndGrouping vg = viewer.getVisibilityAndGrouping();
@@ -201,8 +202,8 @@ public class BoundingBoxDialog extends JDialog
 				}
 				if ( showBoxOverlay )
 				{
-					viewer.getDisplay().addOverlayRenderer( boxOverlay );
-					viewer.addRenderTransformListener( boxOverlay );
+					viewer.getDisplay().overlays().add( boxOverlay );
+					viewer.renderTransformListeners().add( boxOverlay );
 				}
 			}
 
@@ -213,10 +214,11 @@ public class BoundingBoxDialog extends JDialog
 				{
 					viewer.removeSource( boxSourceAndConverter.getSpimSource() );
 					setupAssignments.removeSetup( boxConverterSetup );
+					boxConverterSetup.setupChangeListeners().remove( requestRepaint );
 				}
 				if ( showBoxOverlay )
 				{
-					viewer.getDisplay().removeOverlayRenderer( boxOverlay );
+					viewer.getDisplay().overlays().remove( boxOverlay );
 					viewer.removeTransformListener( boxOverlay );
 				}
 			}

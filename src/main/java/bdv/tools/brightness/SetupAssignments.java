@@ -1,9 +1,8 @@
 /*
  * #%L
- * BigDataViewer core classes with minimal dependencies
+ * BigDataViewer core classes with minimal dependencies.
  * %%
- * Copyright (C) 2012 - 2016 Tobias Pietzsch, Stephan Saalfeld, Stephan Preibisch,
- * Jean-Yves Tinevez, HongKee Moon, Johannes Schindelin, Curtis Rueden, John Bogovic
+ * Copyright (C) 2012 - 2020 BigDataViewer developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -50,8 +49,9 @@ import mpicbg.spim.data.XmlHelpers;
  * <li>No group is empty.</li>
  * </ol>
  *
- * @author Tobias Pietzsch &lt;tobias.pietzsch@gmail.com&gt;
+ * @author Tobias Pietzsch
  */
+@Deprecated
 public class SetupAssignments
 {
 	/**
@@ -83,7 +83,7 @@ public class SetupAssignments
 
 	public interface UpdateListener
 	{
-		public void update();
+		void update();
 	}
 
 	private UpdateListener updateListener;

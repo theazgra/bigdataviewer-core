@@ -1,9 +1,8 @@
 /*
  * #%L
- * BigDataViewer core classes with minimal dependencies
+ * BigDataViewer core classes with minimal dependencies.
  * %%
- * Copyright (C) 2012 - 2016 Tobias Pietzsch, Stephan Saalfeld, Stephan Preibisch,
- * Jean-Yves Tinevez, HongKee Moon, Johannes Schindelin, Curtis Rueden, John Bogovic
+ * Copyright (C) 2012 - 2020 BigDataViewer developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -29,6 +28,8 @@
  */
 package bdv.tools;
 
+import bdv.util.DelayedPackDialog;
+
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.Frame;
@@ -43,14 +44,12 @@ import javax.swing.ActionMap;
 import javax.swing.BorderFactory;
 import javax.swing.InputMap;
 import javax.swing.JComponent;
-import javax.swing.JDialog;
 import javax.swing.JEditorPane;
 import javax.swing.JScrollPane;
 import javax.swing.KeyStroke;
 import javax.swing.ScrollPaneConstants;
-import javax.swing.WindowConstants;
 
-public class HelpDialog extends JDialog
+public class HelpDialog extends DelayedPackDialog
 {
 	private static final long serialVersionUID = 1L;
 
@@ -101,7 +100,6 @@ public class HelpDialog extends JDialog
 			am.put( hideKey, hideAction );
 
 			pack();
-			setDefaultCloseOperation( WindowConstants.HIDE_ON_CLOSE );
 		}
 		catch ( final IOException e )
 		{

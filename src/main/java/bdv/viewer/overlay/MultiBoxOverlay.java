@@ -1,9 +1,8 @@
 /*
  * #%L
- * BigDataViewer core classes with minimal dependencies
+ * BigDataViewer core classes with minimal dependencies.
  * %%
- * Copyright (C) 2012 - 2016 Tobias Pietzsch, Stephan Saalfeld, Stephan Preibisch,
- * Jean-Yves Tinevez, HongKee Moon, Johannes Schindelin, Curtis Rueden, John Bogovic
+ * Copyright (C) 2012 - 2020 BigDataViewer developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -53,7 +52,7 @@ import net.imglib2.util.LinAlgHelpers;
  * colors depending whether the sources are visible.
  *
  * @author Stephan Saalfeld
- * @author Tobias Pietzsch &lt;tobias.pietzsch@gmail.com&gt;
+ * @author Tobias Pietzsch
  */
 public class MultiBoxOverlay
 {
@@ -71,21 +70,21 @@ public class MultiBoxOverlay
 
 	public interface IntervalAndTransform
 	{
-		public boolean isVisible();
+		boolean isVisible();
 
 		/**
 		 * Get interval of the source (stack) in source-local coordinates.
 		 *
 		 * @return extents of the source.
 		 */
-		public Interval getSourceInterval();
+		Interval getSourceInterval();
 
 		/**
 		 * Current transformation from {@link #getSourceInterval() source} to
 		 * viewer. This is a concatenation of source-local-to-global transform
 		 * and the interactive viewer transform.
 		 */
-		public AffineTransform3D getSourceToViewer();
+		AffineTransform3D getSourceToViewer();
 	}
 
 	/**

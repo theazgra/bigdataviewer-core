@@ -1,9 +1,8 @@
 /*
  * #%L
- * BigDataViewer core classes with minimal dependencies
+ * BigDataViewer core classes with minimal dependencies.
  * %%
- * Copyright (C) 2012 - 2016 Tobias Pietzsch, Stephan Saalfeld, Stephan Preibisch,
- * Jean-Yves Tinevez, HongKee Moon, Johannes Schindelin, Curtis Rueden, John Bogovic
+ * Copyright (C) 2012 - 2020 BigDataViewer developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -39,17 +38,17 @@ import net.imglib2.realtransform.AffineTransform3D;
 //@Deprecated
 public interface LegacyViewerImgLoader< T, V extends Volatile< T > > extends LegacyBasicImgLoader< T >
 {
-	public RandomAccessibleInterval< T > getImage( final ViewId view, final int level );
+	RandomAccessibleInterval< T > getImage( final ViewId view, final int level );
 
-	public RandomAccessibleInterval< V > getVolatileImage( final ViewId view, final int level );
+	RandomAccessibleInterval< V > getVolatileImage( final ViewId view, final int level );
 
-	public V getVolatileImageType();
+	V getVolatileImageType();
 
-	public double[][] getMipmapResolutions( final int setupId );
+	double[][] getMipmapResolutions( final int setupId );
 
-	public AffineTransform3D[] getMipmapTransforms( final int setupId );
+	AffineTransform3D[] getMipmapTransforms( final int setupId );
 
-	public int numMipmapLevels( final int setupId );
+	int numMipmapLevels( final int setupId );
 
-	public CacheControl getCache();
+	CacheControl getCache();
 }

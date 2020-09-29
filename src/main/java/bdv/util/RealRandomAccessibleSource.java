@@ -1,9 +1,8 @@
 /*
  * #%L
- * BigDataViewer core classes with minimal dependencies
+ * BigDataViewer core classes with minimal dependencies.
  * %%
- * Copyright (C) 2012 - 2016 Tobias Pietzsch, Stephan Saalfeld, Stephan Preibisch,
- * Jean-Yves Tinevez, HongKee Moon, Johannes Schindelin, Curtis Rueden, John Bogovic
+ * Copyright (C) 2012 - 2020 BigDataViewer developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -46,7 +45,7 @@ import net.imglib2.view.Views;
  *
  * @param <T>
  *
- * @author Tobias Pietzsch &lt;tobias.pietzsch@gmail.com&gt;
+ * @author Tobias Pietzsch
  */
 public abstract class RealRandomAccessibleSource< T extends Type< T > > implements Source< T >
 {
@@ -58,17 +57,25 @@ public abstract class RealRandomAccessibleSource< T extends Type< T > > implemen
 
 	protected final VoxelDimensions voxelDimensions;
 
+	protected final boolean doBoundingBoxIntersectionCheck;
+
 	public RealRandomAccessibleSource( final RealRandomAccessible< T > accessible, final T type, final String name )
 	{
-		this( accessible, type, name, null );
+		this( accessible, type, name, null, false );
 	}
 
 	public RealRandomAccessibleSource( final RealRandomAccessible< T > accessible, final T type, final String name, final VoxelDimensions voxelDimensions )
+	{
+		this( accessible, type, name, voxelDimensions, false );
+	}
+
+	public RealRandomAccessibleSource( final RealRandomAccessible< T > accessible, final T type, final String name, final VoxelDimensions voxelDimensions, final boolean doBoundingBoxIntersectionCheck )
 	{
 		this.accessible = accessible;
 		this.type = type.createVariable();
 		this.name = name;
 		this.voxelDimensions = voxelDimensions;
+		this.doBoundingBoxIntersectionCheck = doBoundingBoxIntersectionCheck;
 	}
 
 	@Override
@@ -125,5 +132,11 @@ public abstract class RealRandomAccessibleSource< T extends Type< T > > implemen
 	public int getNumMipmapLevels()
 	{
 		return 1;
+	}
+
+	@Override
+	public boolean doBoundingBoxCulling()
+	{
+		return doBoundingBoxIntersectionCheck;
 	}
 }
