@@ -7,13 +7,13 @@
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -29,13 +29,11 @@
  */
 package bdv.img.remote;
 
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.URL;
-import java.util.HashMap;
-
-import com.google.gson.GsonBuilder;
-
+import azgracompress.ViewerCompressionOptions;
+import azgracompress.cache.ICacheFile;
+import azgracompress.cache.QuantizationCacheManager;
+import azgracompress.compression.ImageDecompressor;
+import azgracompress.utilities.ColorConsole;
 import bdv.AbstractViewerSetupImgLoader;
 import bdv.ViewerImgLoader;
 import bdv.img.cache.VolatileCachedCellImg;
@@ -44,6 +42,7 @@ import bdv.img.hdf5.DimsAndExistence;
 import bdv.img.hdf5.MipmapInfo;
 import bdv.img.hdf5.ViewLevelId;
 import bdv.util.ConstantRandomAccessible;
+import com.google.gson.GsonBuilder;
 import mpicbg.spim.data.generic.sequence.ImgLoaderHint;
 import net.imglib2.FinalInterval;
 import net.imglib2.RandomAccessibleInterval;
@@ -57,211 +56,245 @@ import net.imglib2.type.volatiles.VolatileUnsignedShortType;
 import net.imglib2.util.IntervalIndexer;
 import net.imglib2.view.Views;
 
-public class RemoteImageLoader implements ViewerImgLoader
-{
-	protected String baseUrl;
+import java.io.DataInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.HashMap;
 
-	protected RemoteImageLoaderMetaData metadata;
+public class RemoteImageLoader implements ViewerImgLoader {
+    protected String baseUrl;
 
-	protected HashMap< ViewLevelId, int[] > cellsDimensions;
+    protected RemoteImageLoaderMetaData metadata;
 
-	protected VolatileGlobalCellCache cache;
+    protected HashMap<ViewLevelId, int[]> cellsDimensions;
 
-	protected RemoteVolatileShortArrayLoader shortLoader;
+    protected VolatileGlobalCellCache cache;
 
-	/**
-	 * TODO
-	 */
-	protected final HashMap< Integer, SetupImgLoader > setupImgLoaders;
+    protected RemoteVolatileShortArrayLoader shortLoader;
 
-	public RemoteImageLoader( final String baseUrl ) throws IOException
-	{
-		this( baseUrl, true );
-	}
+    /**
+     * Flag whether we allow the server to send us compressed data.
+     */
+    private ViewerCompressionOptions viewerCompressionOptions;
 
-	public RemoteImageLoader( final String baseUrl, final boolean doOpen ) throws IOException
-	{
-		this.baseUrl = baseUrl;
-		setupImgLoaders = new HashMap<>();
-		if ( doOpen )
-			open();
-	}
 
-	@Override
-	public SetupImgLoader getSetupImgLoader( final int setupId )
-	{
-		tryopen();
-		return setupImgLoaders.get( setupId );
-	}
+    /**
+     * TODO
+     */
+    protected final HashMap<Integer, SetupImgLoader> setupImgLoaders;
 
-	private boolean isOpen = false;
+    public RemoteImageLoader(final String baseUrl) throws IOException {
+        this(baseUrl, true);
+    }
 
-	private void open() throws IOException
-	{
-		if ( ! isOpen )
-		{
-			synchronized ( this )
-			{
-				if ( isOpen )
-					return;
-				isOpen = true;
+    public RemoteImageLoader(final String baseUrl,
+                             final boolean doOpen) throws IOException {
+        this.baseUrl = baseUrl;
+        setupImgLoaders = new HashMap<>();
+        if (doOpen)
+            open();
+    }
 
-				final URL url = new URL( baseUrl + "?p=init" );
-				final GsonBuilder gsonBuilder = new GsonBuilder();
-				gsonBuilder.registerTypeAdapter( AffineTransform3D.class, new AffineTransform3DJsonSerializer() );
-				metadata = gsonBuilder.create().fromJson(
-						new InputStreamReader( url.openStream() ),
-						RemoteImageLoaderMetaData.class );
-				shortLoader = new RemoteVolatileShortArrayLoader( this );
-				cache = new VolatileGlobalCellCache( metadata.maxNumLevels, 10 );
-				cellsDimensions = metadata.createCellsDimensions();
-				for ( final int setupId : metadata.perSetupMipmapInfo.keySet() )
-					setupImgLoaders.put( setupId, new SetupImgLoader( setupId ) );
-			}
-		}
-	}
+    @Override
+    public SetupImgLoader getSetupImgLoader(final int setupId) {
+        tryopen();
+        return setupImgLoaders.get(setupId);
+    }
 
-	private void tryopen()
-	{
-		try
-		{
-			open();
-		}
-		catch ( final IOException e )
-		{
-			throw new RuntimeException( e );
-		}
-	}
+    private boolean isOpen = false;
 
-	@Override
-	public VolatileGlobalCellCache getCacheControl()
-	{
-		tryopen();
-		return cache;
-	}
+    private void open() throws IOException {
+        if (!isOpen) {
+            synchronized (this) {
+                if (isOpen)
+                    return;
+                isOpen = true;
 
-	public MipmapInfo getMipmapInfo( final int setupId )
-	{
-		tryopen();
-		return metadata.perSetupMipmapInfo.get( setupId );
-	}
+                final URL url = new URL(baseUrl + "?p=init");
+                final GsonBuilder gsonBuilder = new GsonBuilder();
+                gsonBuilder.registerTypeAdapter(AffineTransform3D.class, new AffineTransform3DJsonSerializer());
+                metadata = gsonBuilder.create().fromJson(
+                        new InputStreamReader(url.openStream()),
+                        RemoteImageLoaderMetaData.class);
+                shortLoader = new RemoteVolatileShortArrayLoader(this);
+                cache = new VolatileGlobalCellCache(metadata.maxNumLevels, 10);
+                cellsDimensions = metadata.createCellsDimensions();
+                for (final int setupId : metadata.perSetupMipmapInfo.keySet())
+                    setupImgLoaders.put(setupId, new SetupImgLoader(setupId));
 
-	/**
-	 * Checks whether the given image data is present on the server.
-	 *
-	 * @return true, if the given image data is present.
-	 */
-	public boolean existsImageData( final ViewLevelId id )
-	{
-		return getDimsAndExistence( id ).exists();
-	}
+                if (viewerCompressionOptions.isEnabled()) {
+                    setupCompression();
+                }
+            }
+        }
+    }
 
-	/**
-	 * For images that are missing in the hdf5, a constant image is created. If
-	 * the dimension of the missing image is known (see
-	 * {@link #getDimsAndExistence(ViewLevelId)}) then use that. Otherwise
-	 * create a 1x1x1 image.
-	 */
-	protected < T > RandomAccessibleInterval< T > getMissingDataImage( final ViewLevelId id, final T constant )
-	{
-		final long[] d = getDimsAndExistence( id ).getDimensions();
-		return Views.interval( new ConstantRandomAccessible<>( constant, 3 ), new FinalInterval( d ) );
-	}
+    public void setViewerCompressionOptions(final ViewerCompressionOptions ops) {
+        this.viewerCompressionOptions = ops;
+    }
 
-	public DimsAndExistence getDimsAndExistence( final ViewLevelId id )
-	{
-		tryopen();
-		return metadata.dimsAndExistence.get( id );
-	}
+    private void setupCompression() throws IOException {
+        final URL url = new URL(baseUrl + "?p=init_qcmp");
+        final HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("GET");
+        connection.connect();
 
-	int getCellIndex( final int timepoint, final int setup, final int level, final long[] globalPosition )
-	{
-		final int[] cellDims = cellsDimensions.get( new ViewLevelId( timepoint, setup, level ) );
-		final int[] cellSize = getMipmapInfo( setup ).getSubdivisions()[ level ];
-		final int[] cellPos = new int[] {
-				( int ) globalPosition[ 0 ] / cellSize[ 0 ],
-				( int ) globalPosition[ 1 ] / cellSize[ 1 ],
-				( int ) globalPosition[ 2 ] / cellSize[ 2 ] };
-		return IntervalIndexer.positionToIndex( cellPos, cellDims );
-	}
+        if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+            System.out.println("\u001b[33mRemoteImageLoader::setupCompression() - Server doesn't provide compressed data.\u001b[0m");
+            return;
+        }
+        final ArrayList<ICacheFile> cacheFiles = new ArrayList<>();
+        try (final DataInputStream dis = new DataInputStream(connection.getInputStream())) {
+            final int codebookCount = dis.readByte();
+            for (int cbIndex = 0; cbIndex < codebookCount; cbIndex++) {
+                final ICacheFile readCacheFile = QuantizationCacheManager.readCacheFile(dis);
+                if (readCacheFile == null) {
+                    ColorConsole.fprintf(ColorConsole.Target.stderr,
+                                         ColorConsole.Color.Red,
+                                         "Failed to read codebook from input stream. Compression can't be used.");
+                    return;
+                }
+                cacheFiles.add(readCacheFile);
+            }
+        }
+        ColorConsole.fprintf(ColorConsole.Target.stdout, ColorConsole.Color.Yellow, "Received %d cache files.", cacheFiles.size());
 
-	/**
-	 * Create a {@link VolatileCachedCellImg} backed by the cache. The
-	 * {@code type} should be either {@link UnsignedShortType} and
-	 * {@link VolatileUnsignedShortType}.
-	 */
-	protected < T extends NativeType< T > > RandomAccessibleInterval< T > prepareCachedImage(
-			final ViewLevelId id,
-			final LoadingStrategy loadingStrategy,
-			final T type )
-	{
-		tryopen();
-		if ( cache == null )
-			throw new RuntimeException( "no connection open" );
 
-//		final ViewLevelId id = new ViewLevelId( timepointId, setupId, level );
-		if ( ! existsImageData( id ) )
-		{
-			System.err.println(	String.format(
-					"image data for timepoint %d setup %d level %d could not be found.",
-					id.getTimePointId(), id.getViewSetupId(), id.getLevel() ) );
-			return getMissingDataImage( id, type );
-		}
+        final ImageDecompressor[] decompressors = new ImageDecompressor[cacheFiles.size()];
+        for (int i = 0; i < cacheFiles.size(); i++) {
+            decompressors[i] = new ImageDecompressor(cacheFiles.get(i));
+        }
+        shortLoader.setDataDecompressors(decompressors, metadata.maxNumLevels, viewerCompressionOptions.getCompressFromMipmapLevel());
+    }
 
-		final int timepointId = id.getTimePointId();
-		final int setupId = id.getViewSetupId();
-		final int level = id.getLevel();
-		final MipmapInfo mipmapInfo = metadata.perSetupMipmapInfo.get( setupId );
 
-		final long[] dimensions = metadata.dimsAndExistence.get( id ).getDimensions();
-		final int[] cellDimensions = mipmapInfo.getSubdivisions()[ level ];
-		final CellGrid grid = new CellGrid( dimensions, cellDimensions );
+    private void tryopen() {
+        try {
+            open();
+        } catch (final IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
-		final int priority = mipmapInfo.getMaxLevel() - level;
-		final CacheHints cacheHints = new CacheHints( loadingStrategy, priority, false );
-		return cache.createImg( grid, timepointId, setupId, level, cacheHints, shortLoader, type );
-	}
+    @Override
+    public VolatileGlobalCellCache getCacheControl() {
+        tryopen();
+        return cache;
+    }
 
-	public class SetupImgLoader extends AbstractViewerSetupImgLoader< UnsignedShortType, VolatileUnsignedShortType >
-	{
-		private final int setupId;
+    public MipmapInfo getMipmapInfo(final int setupId) {
+        tryopen();
+        return metadata.perSetupMipmapInfo.get(setupId);
+    }
 
-		protected SetupImgLoader( final int setupId )
-		{
-			super( new UnsignedShortType(), new VolatileUnsignedShortType() );
-			this.setupId = setupId;
-		}
+    /**
+     * Checks whether the given image data is present on the server.
+     *
+     * @return true, if the given image data is present.
+     */
+    public boolean existsImageData(final ViewLevelId id) {
+        return getDimsAndExistence(id).exists();
+    }
 
-		@Override
-		public RandomAccessibleInterval< UnsignedShortType > getImage( final int timepointId, final int level, final ImgLoaderHint... hints )
-		{
-			final ViewLevelId id = new ViewLevelId( timepointId, setupId, level );
-			return prepareCachedImage( id, LoadingStrategy.BLOCKING, type );
-		}
+    /**
+     * For images that are missing in the hdf5, a constant image is created. If
+     * the dimension of the missing image is known (see
+     * {@link #getDimsAndExistence(ViewLevelId)}) then use that. Otherwise
+     * create a 1x1x1 image.
+     */
+    protected <T> RandomAccessibleInterval<T> getMissingDataImage(final ViewLevelId id, final T constant) {
+        final long[] d = getDimsAndExistence(id).getDimensions();
+        return Views.interval(new ConstantRandomAccessible<>(constant, 3), new FinalInterval(d));
+    }
 
-		@Override
-		public RandomAccessibleInterval< VolatileUnsignedShortType > getVolatileImage( final int timepointId, final int level, final ImgLoaderHint... hints )
-		{
-			final ViewLevelId id = new ViewLevelId( timepointId, setupId, level );
-			return prepareCachedImage( id, LoadingStrategy.BUDGETED, volatileType );
-		}
+    public DimsAndExistence getDimsAndExistence(final ViewLevelId id) {
+        tryopen();
+        return metadata.dimsAndExistence.get(id);
+    }
 
-		@Override
-		public double[][] getMipmapResolutions()
-		{
-			return getMipmapInfo( setupId ).getResolutions();
-		}
+    int getCellIndex(final int timepoint, final int setup, final int level, final long[] globalPosition) {
+        final int[] cellDims = cellsDimensions.get(new ViewLevelId(timepoint, setup, level));
+        final int[] cellSize = getMipmapInfo(setup).getSubdivisions()[level];
+        final int[] cellPos = new int[]{
+                (int) globalPosition[0] / cellSize[0],
+                (int) globalPosition[1] / cellSize[1],
+                (int) globalPosition[2] / cellSize[2]};
+        return IntervalIndexer.positionToIndex(cellPos, cellDims);
+    }
 
-		@Override
-		public AffineTransform3D[] getMipmapTransforms()
-		{
-			return getMipmapInfo( setupId ).getTransforms();
-		}
+    /**
+     * Create a {@link VolatileCachedCellImg} backed by the cache. The
+     * {@code type} should be either {@link UnsignedShortType} and
+     * {@link VolatileUnsignedShortType}.
+     */
+    protected <T extends NativeType<T>> RandomAccessibleInterval<T> prepareCachedImage(
+            final ViewLevelId id,
+            final LoadingStrategy loadingStrategy,
+            final T type) {
+        tryopen();
+        if (cache == null)
+            throw new RuntimeException("no connection open");
 
-		@Override
-		public int numMipmapLevels()
-		{
-			return getMipmapInfo( setupId ).getNumLevels();
-		}
-	}
+        //		final ViewLevelId id = new ViewLevelId( timepointId, setupId, level );
+        if (!existsImageData(id)) {
+            System.err.println(String.format(
+                    "image data for timepoint %d setup %d level %d could not be found.",
+                    id.getTimePointId(), id.getViewSetupId(), id.getLevel()));
+            return getMissingDataImage(id, type);
+        }
+
+        final int timepointId = id.getTimePointId();
+        final int setupId = id.getViewSetupId();
+        final int level = id.getLevel();
+        final MipmapInfo mipmapInfo = metadata.perSetupMipmapInfo.get(setupId);
+
+        final long[] dimensions = metadata.dimsAndExistence.get(id).getDimensions();
+        final int[] cellDimensions = mipmapInfo.getSubdivisions()[level];
+        final CellGrid grid = new CellGrid(dimensions, cellDimensions);
+
+        final int priority = mipmapInfo.getMaxLevel() - level;
+        final CacheHints cacheHints = new CacheHints(loadingStrategy, priority, false);
+        return cache.createImg(grid, timepointId, setupId, level, cacheHints, shortLoader, type);
+    }
+
+    public class SetupImgLoader extends AbstractViewerSetupImgLoader<UnsignedShortType, VolatileUnsignedShortType> {
+        private final int setupId;
+
+        protected SetupImgLoader(final int setupId) {
+            super(new UnsignedShortType(), new VolatileUnsignedShortType());
+            this.setupId = setupId;
+        }
+
+        @Override
+        public RandomAccessibleInterval<UnsignedShortType> getImage(final int timepointId, final int level, final ImgLoaderHint... hints) {
+            final ViewLevelId id = new ViewLevelId(timepointId, setupId, level);
+            return prepareCachedImage(id, LoadingStrategy.BLOCKING, type);
+        }
+
+        @Override
+        public RandomAccessibleInterval<VolatileUnsignedShortType> getVolatileImage(final int timepointId,
+                                                                                    final int level,
+                                                                                    final ImgLoaderHint... hints) {
+            final ViewLevelId id = new ViewLevelId(timepointId, setupId, level);
+            return prepareCachedImage(id, LoadingStrategy.BUDGETED, volatileType);
+        }
+
+        @Override
+        public double[][] getMipmapResolutions() {
+            return getMipmapInfo(setupId).getResolutions();
+        }
+
+        @Override
+        public AffineTransform3D[] getMipmapTransforms() {
+            return getMipmapInfo(setupId).getTransforms();
+        }
+
+        @Override
+        public int numMipmapLevels() {
+            return getMipmapInfo(setupId).getNumLevels();
+        }
+    }
 }

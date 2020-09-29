@@ -165,6 +165,7 @@ public class XmlIoSpimDataMinimalLegacy
 	{
 		final Element elem = sequenceDescriptionElem.getChild( "ImageLoader" );
 		final String classn = elem.getAttributeValue( "class" );
+
 		if ( classn.equals( "viewer.hdf5.Hdf5ImageLoader" ) || classn.equals( "bdv.img.hdf5.Hdf5ImageLoader" ) )
 		{
 			final String path = loadPath( elem, "hdf5", basePath ).toString();
