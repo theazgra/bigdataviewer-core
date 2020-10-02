@@ -28,7 +28,6 @@
  */
 package bdv.img.remote;
 
-import azgracompress.ViewerCompressionOptions;
 import azgracompress.cache.ICacheFile;
 import azgracompress.cache.QuantizationCacheManager;
 import azgracompress.compression.ImageDecompressor;
@@ -41,6 +40,7 @@ import bdv.img.hdf5.DimsAndExistence;
 import bdv.img.hdf5.MipmapInfo;
 import bdv.img.hdf5.ViewLevelId;
 import bdv.util.ConstantRandomAccessible;
+import bdv.viewer.ViewerOptions;
 import com.google.gson.GsonBuilder;
 import mpicbg.spim.data.generic.sequence.ImgLoaderHint;
 import net.imglib2.FinalInterval;
@@ -77,7 +77,7 @@ public class RemoteImageLoader implements ViewerImgLoader {
     /**
      * Flag whether we allow the server to send us compressed data.
      */
-    private ViewerCompressionOptions viewerCompressionOptions;
+    private ViewerOptions.CompressionOptions viewerCompressionOptions;
 
 
     /**
@@ -131,7 +131,7 @@ public class RemoteImageLoader implements ViewerImgLoader {
         }
     }
 
-    public void setViewerCompressionOptions(final ViewerCompressionOptions ops) {
+    public void setViewerCompressionOptions(final ViewerOptions.CompressionOptions ops) {
         this.viewerCompressionOptions = ops;
     }
 
@@ -146,7 +146,9 @@ public class RemoteImageLoader implements ViewerImgLoader {
             return;
         }
         final ArrayList<ICacheFile> cacheFiles = new ArrayList<>();
+        int compressFromMipmapLevel = 0;
         try (final DataInputStream dis = new DataInputStream(connection.getInputStream())) {
+            compressFromMipmapLevel = dis.readByte();
             final int codebookCount = dis.readByte();
             for (int cbIndex = 0; cbIndex < codebookCount; cbIndex++) {
                 final ICacheFile readCacheFile = QuantizationCacheManager.readCacheFile(dis);
@@ -160,13 +162,15 @@ public class RemoteImageLoader implements ViewerImgLoader {
             }
         }
         ColorConsole.fprintf(ColorConsole.Target.stdout, ColorConsole.Color.Yellow, "Received %d cache files.", cacheFiles.size());
+        ColorConsole.fprintf(ColorConsole.Target.stdout, ColorConsole.Color.Yellow,
+                             "Decompressing from mipmap level %d.", compressFromMipmapLevel);
 
 
         final ImageDecompressor[] decompressors = new ImageDecompressor[cacheFiles.size()];
         for (int i = 0; i < cacheFiles.size(); i++) {
             decompressors[i] = new ImageDecompressor(cacheFiles.get(i));
         }
-        shortLoader.setDataDecompressors(decompressors, metadata.maxNumLevels, viewerCompressionOptions.getCompressFromMipmapLevel());
+        shortLoader.setDataDecompressors(decompressors, metadata.maxNumLevels, compressFromMipmapLevel);
     }
 
 

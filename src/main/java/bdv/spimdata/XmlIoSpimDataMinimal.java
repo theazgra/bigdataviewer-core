@@ -28,9 +28,9 @@
  */
 package bdv.spimdata;
 
-import azgracompress.ViewerCompressionOptions;
 import bdv.img.remote.RemoteImageLoader;
 import bdv.spimdata.legacy.XmlIoSpimDataMinimalLegacy;
+import bdv.viewer.ViewerOptions;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.SpimDataIOException;
 import mpicbg.spim.data.generic.XmlIoAbstractSpimData;
@@ -49,7 +49,7 @@ import java.io.File;
 import static mpicbg.spim.data.XmlKeys.SPIMDATA_TAG;
 
 public class XmlIoSpimDataMinimal extends XmlIoAbstractSpimData<SequenceDescriptionMinimal, SpimDataMinimal> {
-    private ViewerCompressionOptions compressionOptions;
+    private ViewerOptions.CompressionOptions compressionOptions;
 
     public XmlIoSpimDataMinimal() {
         super(SpimDataMinimal.class,
@@ -61,7 +61,7 @@ public class XmlIoSpimDataMinimal extends XmlIoAbstractSpimData<SequenceDescript
               new XmlIoViewRegistrations());
     }
 
-    public void setViewerCompressionOptions(final ViewerCompressionOptions ops) {
+    public void setViewerCompressionOptions(final ViewerOptions.CompressionOptions ops) {
         this.compressionOptions = ops;
     }
 

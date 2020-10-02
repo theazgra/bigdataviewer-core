@@ -6,13 +6,13 @@
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -29,285 +29,274 @@
 package bdv.viewer;
 
 import bdv.TransformEventHandler3D;
-import java.awt.event.KeyListener;
-
-import org.scijava.ui.behaviour.KeyPressedManager;
-import org.scijava.ui.behaviour.io.InputTriggerConfig;
-
+import bdv.TransformEventHandlerFactory;
 import bdv.viewer.animate.MessageOverlayAnimator;
 import bdv.viewer.render.AccumulateProjector;
 import bdv.viewer.render.AccumulateProjectorARGB;
 import bdv.viewer.render.AccumulateProjectorFactory;
 import bdv.viewer.render.MultiResolutionRenderer;
-import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.ARGBType;
-import bdv.TransformEventHandlerFactory;
+import org.scijava.ui.behaviour.KeyPressedManager;
+import org.scijava.ui.behaviour.io.InputTriggerConfig;
+
+import java.awt.event.KeyListener;
 
 /**
  * Optional parameters for {@link ViewerPanel}.
  *
  * @author Tobias Pietzsch
  */
-public class ViewerOptions
-{
-	public final Values values = new Values();
+public class ViewerOptions {
+    public static class CompressionOptions {
+        private boolean enabled = false;
 
-	/**
-	 * Create default {@link ViewerOptions}.
-	 * @return default {@link ViewerOptions}.
-	 */
-	public static ViewerOptions options()
-	{
-		return new ViewerOptions();
-	}
+        public boolean isEnabled() {
+            return enabled;
+        }
 
-	/**
-	 * Set width of {@link ViewerPanel} canvas.
-	 */
-	public ViewerOptions width( final int w )
-	{
-		values.width = w;
-		return this;
-	}
+        public void setEnabled(final boolean enable) {
+            this.enabled = enable;
+        }
+    }
 
-	/**
-	 * Set height of {@link ViewerPanel} canvas.
-	 */
-	public ViewerOptions height( final int h )
-	{
-		values.height = h;
-		return this;
-	}
+    public final Values values = new Values();
 
-	/**
-	 * Set the number and scale factors for scaled screen images.
-	 *
-	 * @param s
-	 *            Scale factors from the viewer canvas to screen images of
-	 *            different resolutions. A scale factor of 1 means 1 pixel in
-	 *            the screen image is displayed as 1 pixel on the canvas, a
-	 *            scale factor of 0.5 means 1 pixel in the screen image is
-	 *            displayed as 2 pixel on the canvas, etc.
-	 * @see MultiResolutionRenderer
-	 */
-	public ViewerOptions screenScales( final double[] s )
-	{
-		values.screenScales = s;
-		return this;
-	}
+    /**
+     * Create default {@link ViewerOptions}.
+     *
+     * @return default {@link ViewerOptions}.
+     */
+    public static ViewerOptions options() {
+        return new ViewerOptions();
+    }
 
-	/**
-	 * Set target rendering time in nanoseconds.
-	 *
-	 * @param t
-	 *            Target rendering time in nanoseconds. The rendering time for
-	 *            the coarsest rendered scale should be below this threshold.
-	 * @see MultiResolutionRenderer
-	 */
-	public ViewerOptions targetRenderNanos( final long t )
-	{
-		values.targetRenderNanos = t;
-		return this;
-	}
+    /**
+     * Set width of {@link ViewerPanel} canvas.
+     */
+    public ViewerOptions width(final int w) {
+        values.width = w;
+        return this;
+    }
 
-	/**
-	 * Set how many threads to use for rendering.
-	 *
-	 * @param n
-	 *            How many threads to use for rendering.
-	 * @see MultiResolutionRenderer
-	 */
-	public ViewerOptions numRenderingThreads( final int n )
-	{
-		values.numRenderingThreads = n;
-		return this;
-	}
+    public ViewerOptions compressionOptions(final CompressionOptions compressionOptions) {
+        values.compressionOptions = compressionOptions;
+        return this;
+    }
 
-	/**
-	 * Set how many source groups there are initially.
-	 *
-	 * @param n
-	 *            How many source groups to create initially.
-	 */
-	public ViewerOptions numSourceGroups( final int n )
-	{
-		values.numSourceGroups = n;
-		return this;
-	}
+    /**
+     * Set height of {@link ViewerPanel} canvas.
+     */
+    public ViewerOptions height(final int h) {
+        values.height = h;
+        return this;
+    }
 
-	/**
-	 * Set whether volatile versions of sources should be used if available.
-	 *
-	 * @param v
-	 *            whether volatile versions of sources should be used if
-	 *            available.
-	 * @see MultiResolutionRenderer
-	 */
-	public ViewerOptions useVolatileIfAvailable( final boolean v )
-	{
-		values.useVolatileIfAvailable = v;
-		return this;
-	}
+    /**
+     * Set the number and scale factors for scaled screen images.
+     *
+     * @param s Scale factors from the viewer canvas to screen images of
+     *          different resolutions. A scale factor of 1 means 1 pixel in
+     *          the screen image is displayed as 1 pixel on the canvas, a
+     *          scale factor of 0.5 means 1 pixel in the screen image is
+     *          displayed as 2 pixel on the canvas, etc.
+     * @see MultiResolutionRenderer
+     */
+    public ViewerOptions screenScales(final double[] s) {
+        values.screenScales = s;
+        return this;
+    }
 
-	public ViewerOptions msgOverlay( final MessageOverlayAnimator o )
-	{
-		values.msgOverlay = o;
-		return this;
-	}
+    /**
+     * Set target rendering time in nanoseconds.
+     *
+     * @param t Target rendering time in nanoseconds. The rendering time for
+     *          the coarsest rendered scale should be below this threshold.
+     * @see MultiResolutionRenderer
+     */
+    public ViewerOptions targetRenderNanos(final long t) {
+        values.targetRenderNanos = t;
+        return this;
+    }
 
-	public ViewerOptions transformEventHandlerFactory( final TransformEventHandlerFactory f )
-	{
-		values.transformEventHandlerFactory = f;
-		return this;
-	}
+    /**
+     * Set how many threads to use for rendering.
+     *
+     * @param n How many threads to use for rendering.
+     * @see MultiResolutionRenderer
+     */
+    public ViewerOptions numRenderingThreads(final int n) {
+        values.numRenderingThreads = n;
+        return this;
+    }
 
-	/**
-	 * Set the factory for creating {@link AccumulateProjector}. This can be
-	 * used to customize how sources are combined.
-	 *
-	 * @param f
-	 *            factory for creating {@link AccumulateProjector}.
-	 * @see MultiResolutionRenderer
-	 */
-	public ViewerOptions accumulateProjectorFactory( final AccumulateProjectorFactory< ARGBType > f )
-	{
-		values.accumulateProjectorFactory = f;
-		return this;
-	}
+    /**
+     * Set how many source groups there are initially.
+     *
+     * @param n How many source groups to create initially.
+     */
+    public ViewerOptions numSourceGroups(final int n) {
+        values.numSourceGroups = n;
+        return this;
+    }
 
-	/**
-	 * Set the {@link InputTriggerConfig} from which keyboard and mouse action mapping is loaded.
-	 *
-	 * @param c the {@link InputTriggerConfig} from which keyboard and mouse action mapping is loaded
-	 */
-	public ViewerOptions inputTriggerConfig( final InputTriggerConfig c )
-	{
-		values.inputTriggerConfig = c;
-		return this;
-	}
+    /**
+     * Set whether volatile versions of sources should be used if available.
+     *
+     * @param v whether volatile versions of sources should be used if
+     *          available.
+     * @see MultiResolutionRenderer
+     */
+    public ViewerOptions useVolatileIfAvailable(final boolean v) {
+        values.useVolatileIfAvailable = v;
+        return this;
+    }
 
-	/**
-	 * Set the {@link KeyPressedManager} to share
-	 * {@link KeyListener#keyPressed(java.awt.event.KeyEvent)} events with other
-	 * ui-behaviour windows.
-	 * <p>
-	 * The goal is to make keyboard click/drag behaviours work like mouse
-	 * click/drag: When a behaviour is initiated with a key press, the window
-	 * under the mouse receives focus and the behaviour is handled there.
-	 * </p>
-	 *
-	 * @param manager
-	 * @return
-	 */
-	public ViewerOptions shareKeyPressedEvents( final KeyPressedManager manager )
-	{
-		values.keyPressedManager = manager;
-		return this;
-	}
+    public ViewerOptions msgOverlay(final MessageOverlayAnimator o) {
+        values.msgOverlay = o;
+        return this;
+    }
 
-	/**
-	 * Read-only {@link ViewerOptions} values.
-	 */
-	public static class Values
-	{
-		private int width = 800;
+    public ViewerOptions transformEventHandlerFactory(final TransformEventHandlerFactory f) {
+        values.transformEventHandlerFactory = f;
+        return this;
+    }
 
-		private int height = 600;
+    /**
+     * Set the factory for creating {@link AccumulateProjector}. This can be
+     * used to customize how sources are combined.
+     *
+     * @param f factory for creating {@link AccumulateProjector}.
+     * @see MultiResolutionRenderer
+     */
+    public ViewerOptions accumulateProjectorFactory(final AccumulateProjectorFactory<ARGBType> f) {
+        values.accumulateProjectorFactory = f;
+        return this;
+    }
 
-		private double[] screenScales = new double[] { 1, 0.75, 0.5, 0.25, 0.125 };
+    /**
+     * Set the {@link InputTriggerConfig} from which keyboard and mouse action mapping is loaded.
+     *
+     * @param c the {@link InputTriggerConfig} from which keyboard and mouse action mapping is loaded
+     */
+    public ViewerOptions inputTriggerConfig(final InputTriggerConfig c) {
+        values.inputTriggerConfig = c;
+        return this;
+    }
 
-		private long targetRenderNanos = 30 * 1000000l;
+    /**
+     * Set the {@link KeyPressedManager} to share
+     * {@link KeyListener#keyPressed(java.awt.event.KeyEvent)} events with other
+     * ui-behaviour windows.
+     * <p>
+     * The goal is to make keyboard click/drag behaviours work like mouse
+     * click/drag: When a behaviour is initiated with a key press, the window
+     * under the mouse receives focus and the behaviour is handled there.
+     * </p>
+     *
+     * @param manager
+     * @return
+     */
+    public ViewerOptions shareKeyPressedEvents(final KeyPressedManager manager) {
+        values.keyPressedManager = manager;
+        return this;
+    }
 
-		private int numRenderingThreads = 3;
+    /**
+     * Read-only {@link ViewerOptions} values.
+     */
+    public static class Values {
+        private int width = 800;
 
-		private int numSourceGroups = 10;
+        private int height = 600;
 
-		private boolean useVolatileIfAvailable = true;
+        private double[] screenScales = new double[]{1, 0.75, 0.5, 0.25, 0.125};
 
-		private MessageOverlayAnimator msgOverlay = new MessageOverlayAnimator( 800 );
+        private long targetRenderNanos = 30 * 1000000l;
 
-		private TransformEventHandlerFactory transformEventHandlerFactory = TransformEventHandler3D::new;
+        private int numRenderingThreads = 3;
 
-		private AccumulateProjectorFactory< ARGBType > accumulateProjectorFactory = AccumulateProjectorARGB.factory;
+        private int numSourceGroups = 10;
 
-		private InputTriggerConfig inputTriggerConfig = null;
+        private boolean useVolatileIfAvailable = true;
 
-		private KeyPressedManager keyPressedManager = null;
+        private MessageOverlayAnimator msgOverlay = new MessageOverlayAnimator(800);
 
-		public ViewerOptions optionsFromValues()
-		{
-			return new ViewerOptions().
-				width( width ).
-				height( height ).
-				screenScales( screenScales ).
-				targetRenderNanos( targetRenderNanos ).
-				numRenderingThreads( numRenderingThreads ).
-				numSourceGroups( numSourceGroups ).
-				useVolatileIfAvailable( useVolatileIfAvailable ).
-				msgOverlay( msgOverlay ).
-				transformEventHandlerFactory( transformEventHandlerFactory ).
-				accumulateProjectorFactory( accumulateProjectorFactory ).
-				inputTriggerConfig( inputTriggerConfig );
-		}
+        private TransformEventHandlerFactory transformEventHandlerFactory = TransformEventHandler3D::new;
 
-		public int getWidth()
-		{
-			return width;
-		}
+        private AccumulateProjectorFactory<ARGBType> accumulateProjectorFactory = AccumulateProjectorARGB.factory;
 
-		public int getHeight()
-		{
-			return height;
-		}
+        private InputTriggerConfig inputTriggerConfig = null;
 
-		public double[] getScreenScales()
-		{
-			return screenScales;
-		}
+        private KeyPressedManager keyPressedManager = null;
 
-		public long getTargetRenderNanos()
-		{
-			return targetRenderNanos;
-		}
+        private CompressionOptions compressionOptions = new CompressionOptions();
 
-		public int getNumRenderingThreads()
-		{
-			return numRenderingThreads;
-		}
+        public ViewerOptions optionsFromValues() {
+            return new ViewerOptions().
+                    width(width).
+                    height(height).
+                    screenScales(screenScales).
+                    targetRenderNanos(targetRenderNanos).
+                    numRenderingThreads(numRenderingThreads).
+                    numSourceGroups(numSourceGroups).
+                    useVolatileIfAvailable(useVolatileIfAvailable).
+                    msgOverlay(msgOverlay).
+                    transformEventHandlerFactory(transformEventHandlerFactory).
+                    accumulateProjectorFactory(accumulateProjectorFactory).
+                    inputTriggerConfig(inputTriggerConfig).
+                    compressionOptions(compressionOptions);
+        }
 
-		public int getNumSourceGroups()
-		{
-			return numSourceGroups;
-		}
+        public int getWidth() {
+            return width;
+        }
 
-		public boolean isUseVolatileIfAvailable()
-		{
-			return useVolatileIfAvailable;
-		}
+        public int getHeight() {
+            return height;
+        }
 
-		public MessageOverlayAnimator getMsgOverlay()
-		{
-			return msgOverlay;
-		}
+        public double[] getScreenScales() {
+            return screenScales;
+        }
 
-		public TransformEventHandlerFactory getTransformEventHandlerFactory()
-		{
-			return transformEventHandlerFactory;
-		}
+        public long getTargetRenderNanos() {
+            return targetRenderNanos;
+        }
 
-		public AccumulateProjectorFactory< ARGBType > getAccumulateProjectorFactory()
-		{
-			return accumulateProjectorFactory;
-		}
+        public int getNumRenderingThreads() {
+            return numRenderingThreads;
+        }
 
-		public InputTriggerConfig getInputTriggerConfig()
-		{
-			return inputTriggerConfig;
-		}
+        public int getNumSourceGroups() {
+            return numSourceGroups;
+        }
 
-		public KeyPressedManager getKeyPressedManager()
-		{
-			return keyPressedManager;
-		}
-	}
+        public boolean isUseVolatileIfAvailable() {
+            return useVolatileIfAvailable;
+        }
+
+        public MessageOverlayAnimator getMsgOverlay() {
+            return msgOverlay;
+        }
+
+        public TransformEventHandlerFactory getTransformEventHandlerFactory() {
+            return transformEventHandlerFactory;
+        }
+
+        public AccumulateProjectorFactory<ARGBType> getAccumulateProjectorFactory() {
+            return accumulateProjectorFactory;
+        }
+
+        public InputTriggerConfig getInputTriggerConfig() {
+            return inputTriggerConfig;
+        }
+
+        public KeyPressedManager getKeyPressedManager() {
+            return keyPressedManager;
+        }
+
+        public CompressionOptions getCompressionOptions() {
+            return compressionOptions;
+        }
+    }
 }
