@@ -107,7 +107,7 @@ public class BigDataViewer {
 
     protected File proposedSettingsFile;
 
-    private boolean enableCompression;
+    private final boolean enableCompression;
     private String fileName = null;
 
     public void toggleManualTransformation() {
@@ -416,7 +416,7 @@ public class BigDataViewer {
             sendSummaryRequest.addActionListener(event -> {
                 System.out.println("Send summary request.");
                 try {
-                    sendSummaryRequest(fileName + "?p=summary");
+                    sendSummaryRequest(fileName + "?p=qcmp_summary");
                 } catch (final Exception err) {
                     err.printStackTrace();
                 }
@@ -474,14 +474,6 @@ public class BigDataViewer {
         bdv.viewerFrame.setVisible(true);
         InitializeViewerState.initTransform(bdv.viewer);
         return bdv;
-    }
-
-    private synchronized void enableDisableCompression(final boolean enabled) {
-        if (this.enableCompression == enabled)
-            return;
-        this.enableCompression = enabled;
-
-
     }
 
     public static BigDataViewer open(final String xmlFilename,
