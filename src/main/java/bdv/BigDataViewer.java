@@ -70,10 +70,9 @@ import org.scijava.ui.behaviour.io.yaml.YamlConfigIO;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileFilter;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -109,6 +108,7 @@ public class BigDataViewer {
     protected File proposedSettingsFile;
 
     private boolean enableCompression;
+    private String fileName = null;
 
     public void toggleManualTransformation() {
         manualTransformationEditor.toggle();
@@ -412,12 +412,22 @@ public class BigDataViewer {
             menu = new JMenu("QCMP Compression");
             menubar.add(menu);
 
-            final JCheckBoxMenuItem enableCompressionCheckBox = new JCheckBoxMenuItem("Enable compression", true);
-            enableCompressionCheckBox.addActionListener(e -> {
-                enableDisableCompression(enableCompressionCheckBox.isSelected());
+            final JMenuItem sendSummaryRequest = new JMenuItem("Request summary info from server");
+            sendSummaryRequest.addActionListener(event -> {
+                System.out.println("Send summary request.");
+                try {
+                    sendSummaryRequest(fileName + "?p=summary");
+                } catch (final Exception err) {
+                    err.printStackTrace();
+                }
             });
+            menu.add(sendSummaryRequest);
 
-            menu.add(enableCompressionCheckBox);
+            //            final JCheckBoxMenuItem enableCompressionCheckBox = new JCheckBoxMenuItem("Enable compression", true);
+            //            enableCompressionCheckBox.addActionListener(e -> {
+            //                enableDisableCompression(enableCompressionCheckBox.isSelected());
+            //            });
+            //            menu.add(enableCompressionCheckBox);
         }
 
 
@@ -485,6 +495,7 @@ public class BigDataViewer {
         final BigDataViewer bdv = open(spimData, windowTitle, progressWriter, options);
         if (!bdv.tryLoadSettings(xmlFilename))
             InitializeViewerState.initBrightness(0.001, 0.999, bdv.viewerFrame);
+        bdv.fileName = xmlFilename;
         return bdv;
     }
 
@@ -698,5 +709,24 @@ public class BigDataViewer {
         } catch (final Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private static void sendSummaryRequest(final String url) throws Exception {
+        final URL getRequest = new URL(url);
+        final HttpURLConnection urlConnection = (HttpURLConnection) getRequest.openConnection();
+        urlConnection.setRequestMethod("GET");
+
+        final StringBuilder result = new StringBuilder();
+
+        try (final InputStream responseStream = urlConnection.getInputStream()) {
+            final BufferedReader reader = new BufferedReader(new InputStreamReader(responseStream));
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                result.append(line).append('\n');
+            }
+        }
+        System.out.println("Summary request response:");
+        System.out.println(result.toString());
     }
 }

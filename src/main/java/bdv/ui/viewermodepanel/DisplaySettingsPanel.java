@@ -31,11 +31,10 @@ package bdv.ui.viewermodepanel;
 import bdv.viewer.DisplayMode;
 import bdv.viewer.Interpolation;
 import bdv.viewer.ViewerState;
-import java.awt.Color;
-import javax.swing.ImageIcon;
-import javax.swing.JPanel;
-import javax.swing.SwingUtilities;
 import net.miginfocom.swing.MigLayout;
+
+import javax.swing.*;
+import java.awt.*;
 
 import static bdv.viewer.Interpolation.NEARESTNEIGHBOR;
 import static bdv.viewer.Interpolation.NLINEAR;
