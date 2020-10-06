@@ -28,10 +28,6 @@
  */
 package bdv.img.remote;
 
-import azgracompress.cache.ICacheFile;
-import azgracompress.cache.QuantizationCacheManager;
-import azgracompress.compression.ImageDecompressor;
-import azgracompress.utilities.ColorConsole;
 import bdv.AbstractViewerSetupImgLoader;
 import bdv.ViewerImgLoader;
 import bdv.img.cache.VolatileCachedCellImg;
@@ -42,6 +38,10 @@ import bdv.img.hdf5.ViewLevelId;
 import bdv.util.ConstantRandomAccessible;
 import bdv.viewer.ViewerOptions;
 import com.google.gson.GsonBuilder;
+import cz.it4i.qcmp.cache.ICacheFile;
+import cz.it4i.qcmp.cache.QuantizationCacheManager;
+import cz.it4i.qcmp.compression.ImageDecompressor;
+import cz.it4i.qcmp.utilities.ColorConsole;
 import mpicbg.spim.data.generic.sequence.ImgLoaderHint;
 import net.imglib2.FinalInterval;
 import net.imglib2.RandomAccessibleInterval;

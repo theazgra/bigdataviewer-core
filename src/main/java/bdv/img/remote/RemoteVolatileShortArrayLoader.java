@@ -28,10 +28,10 @@
  */
 package bdv.img.remote;
 
-import azgracompress.compression.CompressorDecompressorBase;
-import azgracompress.compression.ImageDecompressor;
-import azgracompress.utilities.ColorConsole;
 import bdv.img.cache.CacheArrayLoader;
+import cz.it4i.qcmp.compression.CompressorDecompressorBase;
+import cz.it4i.qcmp.compression.ImageDecompressor;
+import cz.it4i.qcmp.utilities.ColorConsole;
 import net.imglib2.img.basictypeaccess.volatiles.array.VolatileShortArray;
 
 import java.io.IOException;

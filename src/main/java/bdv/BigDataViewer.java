@@ -28,7 +28,6 @@
  */
 package bdv;
 
-import azgracompress.utilities.ColorConsole;
 import bdv.cache.CacheControl;
 import bdv.export.ProgressWriter;
 import bdv.export.ProgressWriterConsole;
@@ -44,6 +43,7 @@ import bdv.tools.transformation.ManualTransformation;
 import bdv.tools.transformation.ManualTransformationEditor;
 import bdv.tools.transformation.TransformedSource;
 import bdv.viewer.*;
+import cz.it4i.qcmp.utilities.ColorConsole;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
