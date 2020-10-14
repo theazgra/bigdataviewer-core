@@ -479,6 +479,15 @@ public class BigDataViewer {
     public static BigDataViewer open(final String xmlFilename,
                                      final String windowTitle,
                                      final ProgressWriter progressWriter,
+                                     final boolean enableQcmpCompression) throws SpimDataException {
+        final ViewerOptions options = ViewerOptions.options();
+        options.values.getCompressionOptions().setEnabled(enableQcmpCompression);
+        return open(xmlFilename, windowTitle, progressWriter, options);
+    }
+
+    public static BigDataViewer open(final String xmlFilename,
+                                     final String windowTitle,
+                                     final ProgressWriter progressWriter,
                                      final ViewerOptions options) throws SpimDataException {
         final XmlIoSpimDataMinimal xmlIoSpimDataMinimal = new XmlIoSpimDataMinimal();
         xmlIoSpimDataMinimal.setViewerCompressionOptions(options.values.getCompressionOptions());
@@ -673,21 +682,20 @@ public class BigDataViewer {
         }
         final String fn = args[0];
 
-        final ViewerOptions viewerOptions = ViewerOptions.options();
+        boolean qcmpEnabled = false;
         if (args.length > 1) {
             for (int i = 1; i < args.length; i++) {
 
                 switch (args[i]) {
                     case "-qcmp":
-                        viewerOptions.values.getCompressionOptions().setEnabled(true);
+                        qcmpEnabled = true;
                         break;
                 }
 
             }
         }
 
-        ColorConsole.printf(ColorConsole.Color.Green, "Compression:\t" +
-                (viewerOptions.values.getCompressionOptions().isEnabled() ? "ON" : "OFF"));
+        ColorConsole.printf(ColorConsole.Color.Green, "Compression:\t" + (qcmpEnabled ? "ON" : "OFF"));
 
 
         try {
@@ -696,7 +704,7 @@ public class BigDataViewer {
             final BigDataViewer bdv = open(fn,
                                            "Server test",
                                            new ProgressWriterConsole(),
-                                           viewerOptions);
+                                           qcmpEnabled);
 
         } catch (final Exception e) {
             e.printStackTrace();
@@ -718,7 +726,8 @@ public class BigDataViewer {
                 result.append(line).append('\n');
             }
         }
-        System.out.println("Summary request response:");
-        System.out.println(result.toString());
+        //        System.out.println("Summary request response:");
+        JOptionPane.showMessageDialog(null, result.toString(), "Summary request response", JOptionPane.INFORMATION_MESSAGE);
+        //        System.out.println(result.toString());
     }
 }
