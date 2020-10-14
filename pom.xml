@@ -12,7 +12,7 @@
 
     <groupId>sc.fiji</groupId>
     <artifactId>bigdataviewer-core</artifactId>
-    <version>10.0.3-SNAPSHOT</version>
+    <version>10.0.3-QCMP-SNAPSHOT</version>
 
     <name>BigDataViewer Core</name>
     <description>BigDataViewer core classes with minimal dependencies.</description>
@@ -171,7 +171,22 @@
             <id>cz.it4i</id>
             <url>https://code.it4i.cz/api/v4/projects/932/packages/maven</url>
         </repository>
+        <repository>
+            <id>gitlab-maven-bdv-core</id>
+            <url>https://code.it4i.cz/api/v4/projects/933/packages/maven</url>
+        </repository>
     </repositories>
+
+    <distributionManagement>
+        <repository>
+            <id>gitlab-maven-bdv-core</id>
+            <url>https://code.it4i.cz/api/v4/projects/933/packages/maven</url>
+        </repository>
+        <snapshotRepository>
+            <id>gitlab-maven-bdv-core</id>
+            <url>https://code.it4i.cz/api/v4/projects/933/packages/maven</url>
+        </snapshotRepository>
+    </distributionManagement>
 
     <dependencies>
         <dependency>
