@@ -414,7 +414,6 @@ public class BigDataViewer {
 
             final JMenuItem sendSummaryRequest = new JMenuItem("Request summary info from server");
             sendSummaryRequest.addActionListener(event -> {
-                System.out.println("Send summary request.");
                 try {
                     sendSummaryRequest(fileName + "?p=qcmp_summary");
                 } catch (final Exception err) {
@@ -726,8 +725,8 @@ public class BigDataViewer {
                 result.append(line).append('\n');
             }
         }
-        //        System.out.println("Summary request response:");
-        JOptionPane.showMessageDialog(null, result.toString(), "Summary request response", JOptionPane.INFORMATION_MESSAGE);
-        //        System.out.println(result.toString());
+        final String msg = result.toString();
+        System.out.println(msg);
+        JOptionPane.showMessageDialog(null, msg, "Summary request response", JOptionPane.INFORMATION_MESSAGE);
     }
 }
